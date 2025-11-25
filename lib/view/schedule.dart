@@ -1,4 +1,3 @@
-import 'package:edusmart/view/add_subject_page.dart';
 import 'package:edusmart/widget/schedule.dart';
 import 'package:flutter/material.dart';
 
@@ -13,17 +12,17 @@ class _SchedulePageState extends State<SchedulePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => AddGSubjectPage()),
-          );
-          setState(() {}); // refresh setelah balik
-        },
-        backgroundColor: const Color(0xFF2567E8),
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   onPressed: () async {
+      //     await Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (context) => AddGSubjectPage()),
+      //     );
+      //     setState(() {}); // refresh setelah balik
+      //   },
+      //   backgroundColor: const Color(0xFF2567E8),
+      //   child: const Icon(Icons.add, color: Colors.white),
+      // ),
       body: SingleChildScrollView(
         child: Container(
           decoration: BoxDecoration(color: Colors.white),

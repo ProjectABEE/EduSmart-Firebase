@@ -1,9 +1,9 @@
-import 'package:edusmart/database/db_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
 import 'package:edusmart/view/attendanceshistory.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class AttendanceSection extends StatefulWidget {
   final StudentModel? student;
@@ -14,245 +14,185 @@ class AttendanceSection extends StatefulWidget {
 }
 
 class _AttendanceSectionState extends State<AttendanceSection> {
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
   StudentModel? student;
-  Map<String, Map<String, dynamic>> weekMap = {}; // date -> row
-  Map<String, dynamic>? todayRow;
+
   bool loading = true;
   bool isCheckedIn = false;
   bool isCheckedOut = false;
-  int? todayId;
+
+  String? todayDocId;
+  Map<String, dynamic>? todayRow;
+  Map<String, Map<String, dynamic>> weekMap = {};
+
   double weekPercent = 0.0;
-
-  Future<void> getData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email');
-
-    if (email != null) {
-      final db = await DbHelper.db();
-      final result = await db.query(
-        DbHelper.tableStudent,
-        where: 'email = ?',
-        whereArgs: [email],
-      );
-
-      if (result.isNotEmpty) {
-        setState(() {
-          student = StudentModel.fromMap(result.first);
-        });
-      }
-    }
-  }
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _loadStudent();
   }
 
-  Future<void> _init() async {
-    await getData(); // ambil data student dari SharedPreferences
-    await _refreshAll(); // setelah student tidak null, refresh data
-  }
+  Future<void> _loadStudent() async {
+    final user = auth.currentUser;
+    if (user == null) return;
 
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _refreshAll(); // supaya data di-refresh lagi saat kembali ke halaman ini
-  }
+    final doc = await firestore.collection("students").doc(user.uid).get();
 
-  Future<void> _refreshAll() async {
-    if (student == null) {
-      print('⚠️ student null, skip refresh');
-      setState(() => loading = false);
-      return;
+    if (doc.exists) {
+      student = StudentModel.fromMap({"id": user.uid, ...doc.data()!});
+      await _refresh();
     }
-    try {
-      await _loadWeek();
-      await _loadToday();
-    } catch (e) {
-      print('⚠️ Attendance load error: $e');
-    } finally {
-      setState(() => loading = false);
-    }
+
+    setState(() => loading = false);
+  }
+
+  Future<void> _refresh() async {
+    await _loadWeek();
+    await _loadToday();
   }
 
   Future<void> _loadWeek() async {
     final now = DateTime.now();
-    // show Monday..Friday as in design (5 days)
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1)); // Monday
-    // gather 5 days Mon..Fri
-    final days = List.generate(5, (i) => startOfWeek.add(Duration(days: i)));
-    final startDate = DateFormat('yyyy-MM-dd').format(days.first);
-    final endDate = DateFormat('yyyy-MM-dd').format(days.last);
+    final start = now.subtract(Duration(days: now.weekday - 1));
+    final weekDays = List.generate(5, (i) => start.add(Duration(days: i)));
 
-    final results = await DbHelper.getAttendanceByStudent(student!.id!);
-    // build map from results (only between startDate..endDate)
-    Map<String, Map<String, dynamic>> map = {};
-    for (final r in results) {
-      final d = (r['date'] ?? '').toString();
-      if (d.compareTo(startDate) >= 0 && d.compareTo(endDate) <= 0) {
-        map[d] = r;
-      }
+    final startDate = DateFormat("yyyy-MM-dd").format(weekDays.first);
+    final endDate = DateFormat("yyyy-MM-dd").format(weekDays.last);
+
+    final snap = await firestore
+        .collection("attendance")
+        .where("student_id", isEqualTo: student!.id)
+        .where("date", isGreaterThanOrEqualTo: startDate)
+        .where("date", isLessThanOrEqualTo: endDate)
+        .get();
+
+    Map<String, Map<String, dynamic>> temp = {
+      for (var d in snap.docs) d["date"]: d.data(),
+    };
+
+    Map<String, Map<String, dynamic>> weekMapped = {};
+    for (var d in weekDays) {
+      final key = DateFormat("yyyy-MM-dd").format(d);
+      weekMapped[key] = temp[key] ?? {};
     }
 
-    // ensure all 5 days exist (if not, set null)
-    Map<String, Map<String, dynamic>> week = {};
-    for (final day in days) {
-      final key = DateFormat('yyyy-MM-dd').format(day);
-      week[key] = map.containsKey(key) ? map[key]! : {};
-    }
+    weekPercent =
+        (weekMapped.values.where((e) => e["check_out"] != null).length / 5) *
+        100;
 
-    // compute percent (e.g., count done / 5)
-    int done = 0;
-    for (final e in week.entries) {
-      final row = e.value;
-      if (row.isNotEmpty && row['check_out'] != null) done++;
-    }
-    final percent = (done / 5) * 100;
-
-    setState(() {
-      weekMap = week;
-      weekPercent = percent;
-    });
+    setState(() => weekMap = weekMapped);
   }
 
   Future<void> _loadToday() async {
-    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final results = await DbHelper.getAttendanceByStudent(student!.id!);
-    final found = results.firstWhere(
-      (r) => (r['date'] ?? '') == today,
-      orElse: () => {},
-    );
-    if (found.isNotEmpty) {
+    final today = DateFormat("yyyy-MM-dd").format(DateTime.now());
+
+    final snap = await firestore
+        .collection("attendance")
+        .where("student_id", isEqualTo: student!.id)
+        .where("date", isEqualTo: today)
+        .limit(1)
+        .get();
+
+    if (snap.docs.isNotEmpty) {
+      final data = snap.docs.first.data();
       setState(() {
-        todayRow = found;
-        isCheckedIn = found['check_in'] != null;
-        isCheckedOut = found['check_out'] != null;
-        todayId = found['id'] as int?;
+        todayDocId = snap.docs.first.id;
+        todayRow = data;
+        isCheckedIn = data["check_in"] != null;
+        isCheckedOut = data["check_out"] != null;
       });
     } else {
       setState(() {
+        todayDocId = null;
         todayRow = null;
         isCheckedIn = false;
         isCheckedOut = false;
-        todayId = null;
       });
     }
   }
 
-  Future<void> _doCheckIn() async {
-    if (widget.student == null) return;
+  Future<void> checkIn() async {
     final now = DateTime.now();
-    final day = DateFormat('yyyy-MM-dd').format(now);
-    final time = DateFormat('HH:mm').format(now);
+    final today = DateFormat("yyyy-MM-dd").format(now);
+    final time = DateFormat("HH:mm").format(now);
 
-    final insertedId = await DbHelper.insertAttendance({
-      'student_id': widget.student!.id,
-      'date': day,
-      'check_in': time,
-      'check_out': null,
-      'status': 'Hadir',
+    final ref = await firestore.collection("attendance").add({
+      "student_id": student!.id,
+      "date": today,
+      "check_in": time,
+      "check_out": null,
+      "status": "Hadir",
     });
 
-    // update local quickly and reload
-    setState(() {
-      isCheckedIn = true;
-      todayId = insertedId;
-      todayRow = {
-        'date': day,
-        'check_in': time,
-        'check_out': null,
-        'id': insertedId,
-      };
-      weekMap[day] = todayRow!;
-    });
+    todayDocId = ref.id;
+    isCheckedIn = true;
+    todayRow = {"check_in": time};
 
-    await _loadWeek(); // recalc percent & state
+    await _refresh();
   }
 
-  Future<void> _doCheckOut() async {
-    if (todayId == null) return;
-    final now = DateTime.now();
-    final time = DateFormat('HH:mm').format(now);
+  Future<void> checkOut() async {
+    if (todayDocId == null) return;
 
-    await DbHelper.updateCheckOut(todayId!, time);
+    final time = DateFormat("HH:mm").format(DateTime.now());
 
-    // update local state
-    setState(() {
-      isCheckedOut = true;
-      if (todayRow != null) {
-        todayRow = Map<String, dynamic>.from(todayRow!);
-        todayRow!['check_out'] = time;
-      }
-
-      final dayKey = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      if (weekMap.containsKey(dayKey)) {
-        final mutableDay = Map<String, dynamic>.from(weekMap[dayKey]!);
-        mutableDay['check_out'] = time;
-        weekMap[dayKey] = mutableDay;
-      }
+    await firestore.collection("attendance").doc(todayDocId).update({
+      "check_out": time,
     });
 
-    await _loadWeek();
+    isCheckedOut = true;
+    todayRow?["check_out"] = time;
+
+    await _refresh();
   }
 
-  // small helper to render circle day widget
-  Widget _buildDayCircle(DateTime date) {
-    final key = DateFormat('yyyy-MM-dd').format(date);
+  Widget buildCircle(DateTime date) {
+    final key = DateFormat("yyyy-MM-dd").format(date);
     final row = weekMap[key] ?? {};
-    final bool isToday = DateFormat('yyyy-MM-dd').format(DateTime.now()) == key;
+    final isToday = key == DateFormat("yyyy-MM-dd").format(DateTime.now());
 
-    // status: none / half (check_in) / done (check_out)
-    String status = 'none';
-    if (row.isNotEmpty) {
-      if (row['check_out'] != null)
-        status = 'done';
-      else if (row['check_in'] != null)
-        status = 'half';
-    }
+    String status = "none";
+    if (row["check_out"] != null)
+      status = "done";
+    else if (row["check_in"] != null)
+      status = "half";
 
     Color bg;
-    Widget child;
-    switch (status) {
-      case 'done':
-        bg = const Color(0xFF16A34A); // green
-        child = const Icon(Icons.check, color: Colors.white, size: 16);
-        break;
-      case 'half':
-        bg = const Color(0xFF3B82F6); // blue
-        child = const Icon(Icons.access_time, color: Colors.white, size: 14);
-        break;
-      default:
-        bg = Colors.grey.shade200;
-        child = Text(
-          DateFormat('E').format(date).substring(0, 1),
-          style: TextStyle(
-            color: isToday ? Colors.black : Colors.black54,
-            fontWeight: isToday ? FontWeight.bold : FontWeight.w600,
-          ),
-        );
-    }
+    IconData? icon;
 
-    // highlight today with subtle border
+    if (status == "done")
+      bg = Colors.green;
+    else if (status == "half")
+      bg = Colors.blue;
+    else
+      bg = Colors.grey.shade300;
+
+    if (status == "done")
+      icon = Icons.check;
+    else if (status == "half")
+      icon = Icons.access_time;
+
     return Column(
       children: [
         Container(
+          height: 42,
+          width: 42,
           decoration: BoxDecoration(
             color: bg,
             shape: BoxShape.circle,
-            border: isToday
-                ? Border.all(color: const Color(0xFF3B82F6), width: 2)
-                : null,
+            border: isToday ? Border.all(color: Colors.blue, width: 2) : null,
           ),
-          width: 40,
-          height: 40,
-          child: Center(child: child),
+          child: Center(
+            child: icon != null
+                ? Icon(icon, size: 18, color: Colors.white)
+                : Text(DateFormat("E").format(date)[0]),
+          ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          DateFormat('E').format(date).substring(0, 3),
-          style: const TextStyle(fontSize: 12),
-        ),
+        SizedBox(height: 4),
+        Text(DateFormat("E").format(date).substring(0, 3)),
       ],
     );
   }
@@ -260,53 +200,40 @@ class _AttendanceSectionState extends State<AttendanceSection> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1)); // monday
+    final startWeek = now.subtract(Duration(days: now.weekday - 1));
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 15),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 15),
+      padding: EdgeInsets.all(18),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
         color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.12),
-            blurRadius: 20,
+            color: Colors.grey.withOpacity(0.15),
+            blurRadius: 15,
             spreadRadius: 1,
           ),
         ],
       ),
       child: loading
-          ? const SizedBox(
-              height: 220,
-              child: Center(child: CircularProgressIndicator()),
-            )
+          ? Center(child: CircularProgressIndicator())
           : Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // header + history
+                /// HEADER
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F8FF),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: const Icon(
-                        Icons.calendar_today,
-                        color: Color(0xFF3B82F6),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    const Text(
+                    Icon(Icons.calendar_month, color: Color(0xFF3B82F6)),
+                    SizedBox(width: 10),
+                    Text(
                       "Attendance",
                       style: TextStyle(
+                        fontWeight: FontWeight.bold,
                         fontSize: 18,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const Spacer(),
+                    Spacer(),
                     InkWell(
                       onTap: () {
                         Navigator.push(
@@ -317,209 +244,96 @@ class _AttendanceSectionState extends State<AttendanceSection> {
                           ),
                         );
                       },
-                      child: const Text(
+                      child: Text(
                         "Riwayat",
                         style: TextStyle(
                           color: Color(0xFF3B82F6),
                           fontWeight: FontWeight.w500,
+                          fontSize: 14,
                         ),
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 18),
 
-                // status card (green rounded)
+                /// STATUS CARD
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEFFCF3),
+                    color: Color(0xFFE8FCEB),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFDFF6E8)),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: const [
-                          Icon(
-                            Icons.check_circle,
-                            color: Color(0xFF16A34A),
-                            size: 18,
-                          ),
-                          SizedBox(width: 8),
-                          Text(
-                            "Status Absensi Hari Ini",
-                            style: TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Check In",
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    todayRow?['check_in'] ?? '-',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(10),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Text(
-                                    "Check Out",
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Colors.black54,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    todayRow?['check_out'] ?? '-',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                      Text("Check In: ${todayRow?["check_in"] ?? "-"}"),
+                      Text("Check Out: ${todayRow?["check_out"] ?? "-"}"),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                SizedBox(height: 20),
 
-                // This Week + progress
+                /// PROGRESS
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: Text(
-                        "This Week",
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
                     Text(
-                      "${weekPercent.toStringAsFixed(0)}%",
-                      style: TextStyle(fontSize: 13, color: Colors.black54),
+                      "This Week",
+                      style: TextStyle(fontWeight: FontWeight.w600),
                     ),
+                    Text("${weekPercent.toStringAsFixed(0)}%"),
                   ],
                 ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: (weekPercent / 100).clamp(0.0, 1.0),
-                    minHeight: 8,
-                    backgroundColor: Colors.grey.shade200,
-                    valueColor: AlwaysStoppedAnimation(const Color(0xFF111827)),
+
+                SizedBox(height: 6),
+                LinearProgressIndicator(
+                  value: weekPercent / 100,
+                  backgroundColor: Colors.grey.shade300,
+                  minHeight: 8,
+                ),
+
+                SizedBox(height: 20),
+
+                /// DAYS
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: List.generate(
+                    5,
+                    (i) => buildCircle(startWeek.add(Duration(days: i))),
                   ),
                 ),
 
-                const SizedBox(height: 12),
+                SizedBox(height: 20),
 
-                // days row (Mon..Fri)
-                Container(
-                  margin: const EdgeInsets.only(top: 10),
-                  padding: const EdgeInsets.symmetric(
-                    vertical: 12,
-                    horizontal: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF5F7FA),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: List.generate(5, (i) {
-                      final date = startOfWeek.add(Duration(days: i));
-                      return _buildDayCircle(date);
-                    }),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // buttons
+                /// BUTTONS
                 Row(
                   children: [
                     Expanded(
                       child: ElevatedButton(
-                        onPressed: isCheckedIn ? null : () => _doCheckIn(),
+                        onPressed: isCheckedIn ? null : checkIn,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3B82F6),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                          backgroundColor: Color(0xFF3B82F6),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.login, color: Colors.white),
-                            const SizedBox(width: 8),
-                            Text(
-                              isCheckedIn ? "Sudah Check In" : "Check In",
-                              style: const TextStyle(color: Colors.white),
-                            ),
-                          ],
+                        child: Text(
+                          isCheckedIn ? "Sudah Check In" : "Check In",
+                          style: TextStyle(color: Colors.white),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    SizedBox(width: 10),
                     Expanded(
                       child: OutlinedButton(
-                        onPressed: (isCheckedIn && !isCheckedOut)
-                            ? () => _doCheckOut()
+                        onPressed: isCheckedIn && !isCheckedOut
+                            ? checkOut
                             : null,
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(
-                            color: Color(0xFF3B82F6),
-                            width: 2,
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
+                          side: BorderSide(color: Color(0xFF3B82F6)),
                         ),
-                        child: const Text(
-                          "Sudah Check Out",
+                        child: Text(
+                          "Check Out",
                           style: TextStyle(color: Color(0xFF3B82F6)),
                         ),
                       ),

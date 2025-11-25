@@ -1,15 +1,13 @@
-import 'package:edusmart/database/db_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
-import 'package:edusmart/preferences/preferences_handler.dart';
-import 'package:edusmart/view/EditProfile.dart';
+import 'package:edusmart/view/editprofile.dart';
 import 'package:edusmart/view/loginedu.dart';
 import 'package:edusmart/widget/WidgetStatistic.dart';
 import 'package:edusmart/widget/infotile.dart';
 import 'package:edusmart/widget/judulW.dart';
 import 'package:edusmart/widget/menu.dart';
-import 'package:edusmart/widget/textfieldwidget.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -21,267 +19,206 @@ class ProfilePage extends StatefulWidget {
 class _ProfilePageState extends State<ProfilePage> {
   StudentModel? student;
 
+  final FirebaseAuth auth = FirebaseAuth.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
+
   @override
   void initState() {
     super.initState();
-    getData();
+    loadUser();
   }
 
-  Future<void> getData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email'); // ambil email user login
+  /// 🔥 Ambil data student berdasarkan UID Firestore
+  Future<void> loadUser() async {
+    final user = auth.currentUser;
+    if (user == null) return;
 
-    if (email != null) {
-      final db = await DbHelper.db();
-      final result = await db.query(
-        DbHelper.tableStudent,
-        where: 'email = ?',
-        whereArgs: [email],
-      );
+    final snap = await firestore.collection("students").doc(user.uid).get();
 
-      if (result.isNotEmpty) {
-        setState(() {
-          student = StudentModel.fromMap(result.first);
-        });
-      }
+    if (snap.exists) {
+      setState(() {
+        student = StudentModel.fromMap({"id": user.uid, ...snap.data()!});
+      });
+    }
+  }
+
+  /// 🔧 Update profile ke Firebase
+  Future<void> onEdit(StudentModel student) async {
+    final nameC = TextEditingController(text: student.name);
+    final classC = TextEditingController(text: student.className);
+    final ageC = TextEditingController(text: student.age.toString());
+
+    final res = await showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text("Edit Profile"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            spacing: 12,
+            children: [
+              TextField(
+                controller: nameC,
+                decoration: InputDecoration(labelText: "Name"),
+              ),
+              TextField(
+                controller: ageC,
+                decoration: InputDecoration(labelText: "Age"),
+              ),
+              TextField(
+                controller: classC,
+                decoration: InputDecoration(labelText: "Class"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text("Save"),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (res == true) {
+      await firestore.collection("students").doc(student.id).update({
+        "name": nameC.text,
+        "age": int.tryParse(ageC.text) ?? student.age,
+        "class_name": classC.text,
+      });
+
+      loadUser();
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Profile updated successfully!")));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    Future<void> onEdit(StudentModel student) async {
-      final editNameC = TextEditingController(text: student.name);
-      final editAgeC = TextEditingController(text: student.age.toString());
-      final editClasssC = TextEditingController(text: student.classs);
-      final editEmailC = TextEditingController(text: student.email);
-      final editPassC = TextEditingController(text: student.password);
-      final res = await showDialog(
-        context: context,
-        builder: (context) {
-          return AlertDialog(
-            title: Text("Edit Data"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              spacing: 12,
-              children: [
-                Textfield(nama: "Name", controler: editNameC),
-                Textfield(nama: "Email", controler: editEmailC),
-                Textfield(nama: "Age", controler: editAgeC),
-                Textfield(nama: "Classs", controler: editClasssC),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                },
-                child: Text("Batal"),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context, true);
-                },
-                child: Text("Simpan"),
-              ),
-            ],
-          );
-        },
-      );
-
-      if (res == true) {
-        final updated = StudentModel(
-          id: student.id,
-          name: editNameC.text,
-          email: editEmailC.text,
-          classs: editClasssC.text,
-          age: int.parse(editAgeC.text),
-          password: editPassC.text,
-        );
-        DbHelper.updateStudent(updated);
-        getData();
-        ScaffoldMessenger(child: Text("data berhasil di perbarui"));
-      }
-    }
-
-    // Future<void> onDelete(StudentModel student) async {
-    //   final res = await showDialog(
-    //     context: context,
-    //     builder: (context) {
-    //       return AlertDialog(
-    //         title: Text("Hapus Data"),
-    //         content: Column(
-    //           mainAxisSize: MainAxisSize.min,
-    //           spacing: 12,
-    //           children: [
-    //             Text(
-    //               "Apakah anda yakin ingin menghapus data ${student.name}?",
-    //               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-    //             ),
-    //           ],
-    //         ),
-    //         actions: [
-    //           TextButton(
-    //             onPressed: () {
-    //               Navigator.pop(context);
-    //             },
-    //             child: Text("Jangan"),
-    //           ),
-    //           TextButton(
-    //             onPressed: () {
-    //               Navigator.pop(context, true);
-    //             },
-    //             child: Text("Ya, hapus aja"),
-    //           ),
-    //         ],
-    //       );
-    //     },
-    //   );
-
-    //   if (res == true) {
-    //     DbHelper.deleteStudent(student.id!);
-    //     getData();
-    //     ScaffoldMessenger(child: Text("data berhasil di hapus"));
-    //   }
-    // }
-
     return Scaffold(
       backgroundColor: const Color(0xfff7f9fc),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 🔹 Header
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 40),
-              decoration: const BoxDecoration(
-                color: Color(0xFF2567E8),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-              ),
+      body: student == null
+          ? Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const CircleAvatar(
-                    radius: 45,
-                    backgroundImage: AssetImage(
-                      'assets/images/abe2.png',
-                    ), // ganti path asset kamu
-                    backgroundColor: Colors.white,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    student?.name ?? '-',
-                    style: TextStyle(
-                      fontSize: 22,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    "Class ${student?.classs ?? '-'}",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                  const SizedBox(height: 10),
-                  ElevatedButton(
-                    onPressed: student == null ? null : () => onEdit(student!),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF2567E8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  /// 🔹 Header
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 40),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF2567E8),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30),
                       ),
                     ),
-                    child: const Text("Edit Profile"),
+                    child: Column(
+                      children: [
+                        const CircleAvatar(
+                          radius: 45,
+                          backgroundImage: AssetImage('assets/images/abe2.png'),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          student?.name ?? "-",
+                          style: const TextStyle(
+                            fontSize: 22,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          student?.className ?? "-",
+                          style: const TextStyle(color: Colors.white70),
+                        ),
+                        const SizedBox(height: 8),
+                        ElevatedButton(
+                          onPressed: () => onEdit(student!),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Color(0xFF2567E8),
+                          ),
+                          child: Text("Edit Profile"),
+                        ),
+                      ],
+                    ),
                   ),
+
+                  const SizedBox(height: 20),
+
+                  /// 🔹 Stats Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        statCard(
+                          "92%",
+                          "Attendance",
+                          Icons.calendar_today,
+                          Colors.blue,
+                        ),
+                        statCard(
+                          "89.5",
+                          "Avg Grade",
+                          Icons.star,
+                          Colors.orange,
+                        ),
+                        statCard("8", "Courses", Icons.book, Colors.purple),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  sectionTitle("Personal Info"),
+                  infoTile(Icons.email, student?.email ?? '-', "Email"),
+                  infoTile(Icons.person, student?.className ?? '-', "Class"),
+
+                  const SizedBox(height: 24),
+
+                  MenuItemWidget(
+                    icon: Icons.edit,
+                    title: "Edit Profile",
+                    route: EditProfilePage(student: student!),
+                    onReturn: () => loadUser(),
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: TextButton(
+                      onPressed: () {
+                        FirebaseAuth.instance.signOut();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => LoginEdu()),
+                          (_) => false,
+                        );
+                      },
+                      child: Row(
+                        children: [
+                          Icon(Icons.logout, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text("Logout", style: TextStyle(color: Colors.red)),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  SizedBox(height: 30),
                 ],
               ),
             ),
-
-            const SizedBox(height: 20),
-
-            // 🔹 3 Statistik (Attendance, Grade, Courses)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  statCard(
-                    "92%",
-                    "Attendance",
-                    Icons.calendar_today,
-                    Colors.blue,
-                  ),
-                  statCard(
-                    "89.5",
-                    "Average Grade",
-                    Icons.bar_chart,
-                    Colors.green,
-                  ),
-                  statCard("8", "Courses", Icons.book, Colors.purple),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 🔹 Personal Information
-            sectionTitle("Personal Information"),
-            infoTile(Icons.email, student?.email ?? '-', "Email"),
-            infoTile(Icons.phone, student?.noTelp ?? '-', "Phone"),
-            infoTile(Icons.location_on, student?.alamat ?? '-', "Address"),
-            infoTile(Icons.cake, student?.tanggalLahir ?? '-', "Birth Date"),
-
-            const SizedBox(height: 24),
-
-            // 🔹 Parent/Guardian
-            sectionTitle("Parent/Guardian"),
-            infoTile(Icons.person, student?.namaOrtu ?? '-', "Name"),
-            infoTile(
-              Icons.phone_android,
-              student?.kontakOrtu ?? '-',
-              "Contact",
-            ),
-
-            const SizedBox(height: 24),
-
-            // 🔹 Settings / Logout
-            MenuItemWidget(
-              icon: Icons.edit,
-              title: "Edit Profile",
-              route: student == null
-                  ? null
-                  : EditProfilePage(student: student!),
-              onReturn: () => getData(),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.only(left: 16),
-              child: TextButton(
-                onPressed: () {
-                  PreferenceHandler.removeLogin();
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (context) => LoginEdu()),
-                    (route) => false,
-                  );
-                },
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, color: Colors.red),
-                    SizedBox(width: 14),
-                    Text("Logout", style: TextStyle(color: Colors.red)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
     );
   }
 }

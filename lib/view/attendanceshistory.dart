@@ -1,8 +1,8 @@
-import 'package:edusmart/database/db_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class HistoryPage extends StatefulWidget {
-  final int studentId;
+  final String studentId; // now Firebase UID, not int
   const HistoryPage({super.key, required this.studentId});
 
   @override
@@ -10,6 +10,7 @@ class HistoryPage extends StatefulWidget {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
   List<Map<String, dynamic>> attendanceList = [];
 
   @override
@@ -19,75 +20,97 @@ class _HistoryPageState extends State<HistoryPage> {
   }
 
   Future<void> _loadAttendance() async {
-    final results = await DbHelper.getAttendanceByStudent(widget.studentId);
+    final snap = await firestore
+        .collection("attendance")
+        .where("student_id", isEqualTo: widget.studentId)
+        .orderBy("date", descending: true)
+        .get();
+
     setState(() {
-      attendanceList = results;
+      attendanceList = snap.docs.map((e) => {"id": e.id, ...e.data()}).toList();
     });
   }
 
-  Future<void> _deleteAttendance(int id) async {
-    await DbHelper.deleteAttendance(id);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Riwayat absensi berhasil dihapus")),
-    );
-    _loadAttendance(); // reload daftar setelah hapus
+  Future<void> _deleteAttendance(String id) async {
+    await firestore.collection("attendance").doc(id).delete();
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Riwayat absensi berhasil dihapus")));
+    _loadAttendance();
+  }
+
+  Future<void> _deleteAllAttendance() async {
+    final batch = firestore.batch();
+
+    final snap = await firestore
+        .collection("attendance")
+        .where("student_id", isEqualTo: widget.studentId)
+        .get();
+
+    for (var doc in snap.docs) {
+      batch.delete(doc.reference);
+    }
+
+    await batch.commit();
+
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text("Semua riwayat berhasil dihapus")));
+
+    _loadAttendance();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Riwayat Absensi"),
+        title: Text("Riwayat Absensi"),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete_forever),
+            icon: Icon(Icons.delete_forever),
             onPressed: () async {
-              // konfirmasi hapus semua data
               final confirm = await showDialog<bool>(
                 context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("Hapus Semua Riwayat?"),
-                  content: const Text(
-                    "Apakah kamu yakin ingin menghapus semua riwayat absensi?",
+                builder: (_) => AlertDialog(
+                  title: Text("Hapus Semua Riwayat?"),
+                  content: Text(
+                    "Apakah kamu yakin ingin menghapus semua data?",
                   ),
                   actions: [
                     TextButton(
                       onPressed: () => Navigator.pop(context, false),
-                      child: const Text("Batal"),
+                      child: Text("Batal"),
                     ),
                     ElevatedButton(
                       onPressed: () => Navigator.pop(context, true),
-                      child: const Text("Hapus Semua"),
+                      child: Text("Hapus Semua"),
                     ),
                   ],
                 ),
               );
-              if (confirm == true) {
-                await DbHelper.deleteAllAttendanceByStudent(widget.studentId);
-                _loadAttendance();
-              }
+
+              if (confirm == true) _deleteAllAttendance();
             },
           ),
         ],
       ),
+
       body: attendanceList.isEmpty
-          ? const Center(child: Text("Belum ada riwayat absensi"))
+          ? Center(child: Text("Belum ada riwayat absensi"))
           : ListView.builder(
               itemCount: attendanceList.length,
               itemBuilder: (context, index) {
                 final item = attendanceList[index];
+
                 return Card(
-                  margin: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
+                  margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   child: ListTile(
                     title: Text(item['date']),
                     subtitle: Text(
                       "Masuk: ${item['check_in'] ?? '-'} | Pulang: ${item['check_out'] ?? '-'}",
                     ),
                     trailing: IconButton(
-                      icon: const Icon(Icons.delete_outline, color: Colors.red),
+                      icon: Icon(Icons.delete_outline, color: Colors.red),
                       onPressed: () => _deleteAttendance(item['id']),
                     ),
                   ),

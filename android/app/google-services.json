@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "302008256496",
+    "project_id": "edusmart-fbbe8",
+    "storage_bucket": "edusmart-fbbe8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:302008256496:android:ebf06380a15b7390607f35",
+        "android_client_info": {
+          "package_name": "com.ppkd.edusmart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAQmq3K6FJrRP_VcP1FKPKHmn8LU3odL_M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,70 +1,88 @@
-import 'dart:convert';
-
 class StudentModel {
-  int? id;
-  String name;
-  String email;
-  String classs;
-  int age;
-  dynamic password;
+  final String? id;
+  final String? name;
+  final String? email;
+  final String? className;
+  final int? age;
+  final String? noTelp;
+  final String? alamat;
+  final String? tanggalLahir;
+  final String? namaOrtu;
+  final String? kontakOrtu;
   final String? role;
-  String? noTelp;
-  String? alamat;
-  String? tanggalLahir;
-  String? namaOrtu;
-  String? kontakOrtu;
 
   StudentModel({
     this.id,
-    required this.name,
-    required this.email,
-    required this.classs,
-    required this.age,
-    required this.password,
+    this.name,
+    this.email,
+    this.className,
+    this.age,
     this.noTelp,
     this.alamat,
     this.tanggalLahir,
     this.namaOrtu,
     this.kontakOrtu,
-    this.role = 'siswa',
+    this.role,
   });
 
-  Map<String, dynamic> toMap() {
-    return {
-      'id': id,
-      'name': name,
-      'email': email,
-      'class': classs,
-      'age': age,
-      'password': password,
-      'no_telp': noTelp,
-      'alamat': alamat,
-      'tanggal_lahir': tanggalLahir,
-      'nama_ortu': namaOrtu,
-      'kontak_ortu': kontakOrtu,
-      'role': role,
-    };
-  }
-
-  factory StudentModel.fromMap(Map<String, dynamic> map) {
+  StudentModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? className,
+    int? age,
+    String? noTelp,
+    String? alamat,
+    String? tanggalLahir,
+    String? namaOrtu,
+    String? kontakOrtu,
+    String? role,
+  }) {
     return StudentModel(
-      id: map['id'] as int?,
-      name: map['name'] ?? '',
-      email: map['email'] ?? '',
-      classs: map['class'] ?? '',
-      age: map['age'] ?? 0,
-      password: map['password'],
-      noTelp: map['no_telp'],
-      alamat: map['alamat'],
-      tanggalLahir: map['tanggal_lahir'],
-      namaOrtu: map['nama_ortu'],
-      kontakOrtu: map['kontak_ortu'],
-      role: map['role'],
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      className: className ?? this.className,
+      age: age ?? this.age,
+      noTelp: noTelp ?? this.noTelp,
+      alamat: alamat ?? this.alamat,
+      tanggalLahir: tanggalLahir ?? this.tanggalLahir,
+      namaOrtu: namaOrtu ?? this.namaOrtu,
+      kontakOrtu: kontakOrtu ?? this.kontakOrtu,
+      role: role ?? this.role,
     );
   }
 
-  String toJson() => json.encode(toMap());
+  /// 🔥 Untuk Firestore (pakai camelCase)
+  Map<String, dynamic> toMap() {
+    return {
+      "name": name,
+      "email": email,
+      "className": className,
+      "age": age,
+      "noTelp": noTelp,
+      "alamat": alamat,
+      "tanggalLahir": tanggalLahir,
+      "namaOrtu": namaOrtu,
+      "kontakOrtu": kontakOrtu,
+      "role": role,
+    };
+  }
 
-  factory StudentModel.fromJson(String source) =>
-      StudentModel.fromMap(json.decode(source) as Map<String, dynamic>);
+  /// 🔥 Baca data dari Firestore
+  factory StudentModel.fromMap(Map<String, dynamic> json) {
+    return StudentModel(
+      id: json["id"],
+      name: json["name"],
+      email: json["email"],
+      className: json["className"] ?? json["class"] ?? json["class_name"],
+      age: json["age"],
+      noTelp: json["noTelp"] ?? json["no_telp"],
+      alamat: json["alamat"],
+      tanggalLahir: json["tanggalLahir"] ?? json["tanggal_lahir"],
+      namaOrtu: json["namaOrtu"] ?? json["nama_ortu"],
+      kontakOrtu: json["kontakOrtu"] ?? json["kontak_ortu"],
+      role: json["role"] ?? "siswa",
+    );
+  }
 }

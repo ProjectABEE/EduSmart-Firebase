@@ -26,9 +26,7 @@ class _SplashScreenState extends State<SplashScreen> {
       if (isLogin != null && isLogin == true) {
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(
-            builder: (context) => BottomNavigationEDU(name: '$name'),
-          ),
+          MaterialPageRoute(builder: (context) => BottomNavigationEDU()),
           (route) => false,
         );
       } else {

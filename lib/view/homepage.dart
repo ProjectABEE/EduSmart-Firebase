@@ -1,15 +1,14 @@
-import 'package:edusmart/database/db_helper.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
 import 'package:edusmart/view/AttendanceSection.dart';
 import 'package:edusmart/widget/announcementsW.dart';
 import 'package:edusmart/widget/nilai.dart';
 import 'package:edusmart/widget/schedule.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePageEdu extends StatefulWidget {
-  const HomePageEdu({super.key, required this.name});
-  final String name;
+  const HomePageEdu({super.key});
   @override
   State<HomePageEdu> createState() => _HomePageEduState();
 }
@@ -18,26 +17,49 @@ class _HomePageEduState extends State<HomePageEdu> {
   StudentModel? student;
   bool isCheckedIn = false;
   bool isCheckedOut = false;
-
-  Future<void> getData() async {
-    final prefs = await SharedPreferences.getInstance();
-    final email = prefs.getString('email');
-
-    if (email != null) {
-      final db = await DbHelper.db();
-      final result = await db.query(
-        DbHelper.tableStudent,
-        where: 'email = ?',
-        whereArgs: [email],
-      );
-
-      if (result.isNotEmpty) {
-        setState(() {
-          student = StudentModel.fromMap(result.first);
-        });
-      }
-    }
+  @override
+  void initState() {
+    super.initState();
+    _getFirebaseUser().then((value) {
+      setState(() {
+        student = value;
+      });
+    });
   }
+
+  Future<StudentModel?> _getFirebaseUser() async {
+    final auth = FirebaseAuth.instance;
+    final firestore = FirebaseFirestore.instance;
+
+    final user = auth.currentUser;
+    if (user == null) return null;
+
+    final doc = await firestore.collection("students").doc(user.uid).get();
+
+    if (!doc.exists) return null;
+
+    return StudentModel.fromMap({"id": user.uid, ...doc.data()!});
+  }
+
+  // Future<void> getData() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final email = prefs.getString('email');
+
+  //   if (email != null) {
+  //     final db = await DbHelper.db();
+  //     final result = await db.query(
+  //       DbHelper.tableStudent,
+  //       where: 'email = ?',
+  //       whereArgs: [email],
+  //     );
+
+  //     if (result.isNotEmpty) {
+  //       setState(() {
+  //         student = StudentModel.fromMap(result.first);
+  //       });
+  //     }
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +69,27 @@ class _HomePageEduState extends State<HomePageEdu> {
           decoration: BoxDecoration(color: Colors.white),
           child: Column(
             children: [
+              // Padding(
+              //   padding: const EdgeInsets.only(left: 16),
+              //   child: TextButton(
+              //     onPressed: () {
+              //       PreferenceHandler.removeLogin();
+              //       FirebaseAuth.instance.signOut();
+              //       Navigator.pushAndRemoveUntil(
+              //         context,
+              //         MaterialPageRoute(builder: (_) => LoginEdu()),
+              //         (_) => false,
+              //       );
+              //     },
+              //     child: Row(
+              //       children: [
+              //         Icon(Icons.logout, color: Colors.red),
+              //         SizedBox(width: 8),
+              //         Text("Logout", style: TextStyle(color: Colors.red)),
+              //       ],
+              //     ),
+              //   ),
+              // ),
               // Profil Atas Biru
               Container(
                 height: 200,
@@ -89,7 +132,7 @@ class _HomePageEduState extends State<HomePageEdu> {
                               ),
                             ),
                             Text(
-                              widget.name,
+                              student?.name ?? '-',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -159,42 +202,78 @@ class _HomePageEduState extends State<HomePageEdu> {
                 ),
               ),
               SizedBox(height: 16),
+              // Container(
+              //   margin: EdgeInsets.symmetric(horizontal: 15),
+              //   decoration: BoxDecoration(
+              //     borderRadius: BorderRadius.circular(30),
+              //     color: Colors.white,
+              //     boxShadow: [
+              //       BoxShadow(
+              //         color: Colors.grey.withOpacity(0.5),
+              //         spreadRadius: 1,
+              //         blurRadius: 20,
+              //         offset: const Offset(0, 8),
+              //       ),
+              //     ],
+              //   ),
+              //   child:
+              FutureBuilder<StudentModel?>(
+                future: _getFirebaseUser(), // 🔥 fungsi baru
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const SizedBox(
+                      height: 220,
+                      child: Center(child: CircularProgressIndicator()),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data == null) {
+                    return const SizedBox(
+                      height: 220,
+                      child: Center(child: Text('Tidak ada data siswa')),
+                    );
+                  }
+
+                  return AttendanceSection(student: snapshot.data);
+                },
+              ),
+              // ),
 
               // Container Attendance
-              Container(
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: FutureBuilder<StudentModel?>(
-                  future: DbHelper.getStudentFromPrefs(),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const SizedBox(
-                        height: 220,
-                        child: Center(child: CircularProgressIndicator()),
-                      );
-                    }
-                    if (!snapshot.hasData || snapshot.data == null) {
-                      return const SizedBox(
-                        height: 220,
-                        child: Center(child: Text('Tidak ada data siswa')),
-                      );
-                    }
-                    // ✅ kirim student yang sudah pasti tidak null
-                    return AttendanceSection(student: snapshot.data);
-                  },
-                ),
-              ),
+              // Container(
+              //   margin: EdgeInsets.symmetric(horizontal: 15),
+              //   decoration: BoxDecoration(
+              //     borderRadius: BorderRadius.circular(30),
+              //     color: Colors.white,
+              //     boxShadow: [
+              //       BoxShadow(
+              //         color: Colors.grey.withOpacity(0.5),
+              //         spreadRadius: 1,
+              //         blurRadius: 20,
+              //         offset: const Offset(0, 8),
+              //       ),
+              //     ],
+              //   ),
+              //   child: FutureBuilder<StudentModel?>(
+              //     future: DbHelper.getStudentFromPrefs(),
+              //     builder: (context, snapshot) {
+              //       if (snapshot.connectionState == ConnectionState.waiting) {
+              //         return const SizedBox(
+              //           height: 220,
+              //           child: Center(child: CircularProgressIndicator()),
+              //         );
+              //       }
+              //       if (!snapshot.hasData || snapshot.data == null) {
+              //         return const SizedBox(
+              //           height: 220,
+              //           child: Center(child: Text('Tidak ada data siswa')),
+              //         );
+              //       }
+              //       // ✅ kirim student yang sudah pasti tidak null
+              //       return AttendanceSection(student: snapshot.data);
+              //     },
+              //   ),
+              // ),
 
               // Container(
               //   margin: EdgeInsets.symmetric(horizontal: 15),

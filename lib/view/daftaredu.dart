@@ -1,5 +1,5 @@
-import 'package:edusmart/database/db_helper.dart';
 import 'package:edusmart/model/student_model.dart';
+import 'package:edusmart/services/firebase.dart';
 import 'package:edusmart/view/loginedu.dart';
 import 'package:flutter/material.dart';
 
@@ -218,22 +218,22 @@ class _DaftarEduState extends State<DaftarEdu> {
                                 return null;
                               },
                             ),
-                            DropdownButton<String>(
-                              value: selectedRole,
-                              items: ['siswa', 'guru']
-                                  .map(
-                                    (role) => DropdownMenuItem(
-                                      value: role,
-                                      child: Text(role.toUpperCase()),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                setState(() {
-                                  selectedRole = value!;
-                                });
-                              },
-                            ),
+                            // DropdownButton<String>(
+                            //   value: selectedRole,
+                            //   items: ['siswa', 'guru']
+                            //       .map(
+                            //         (role) => DropdownMenuItem(
+                            //           value: role,
+                            //           child: Text(role.toUpperCase()),
+                            //         ),
+                            //       )
+                            //       .toList(),
+                            //   onChanged: (value) {
+                            //     setState(() {
+                            //       selectedRole = value!;
+                            //     });
+                            //   },
+                            // ),
                             SizedBox(height: 20),
                             Center(
                               child: SizedBox(
@@ -246,83 +246,69 @@ class _DaftarEduState extends State<DaftarEdu> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  onPressed: () {
+                                  onPressed: () async {
                                     if (formkey.currentState!.validate()) {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => LoginEdu(
-                                            // email: emailcontroler.text,
-                                            // nama: namacontroler.text,
-                                            // kelas: kelascontroler.text,
-                                            // umur: umurcontroler.text,
+                                      try {
+                                        final student = StudentModel(
+                                          name: namacontroler.text,
+                                          email: emailcontroler.text,
+                                          className: kelascontroler.text,
+                                          age: int.parse(umurcontroler.text),
+                                          role: 'siswa',
+                                        );
+
+                                        await FirebaseServices.registerUser(
+                                          student,
+                                          passwordController.text,
+                                        );
+
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "Registrasi Berhasil",
+                                            ),
                                           ),
-                                          // settings: RouteSettings(
-                                          //   arguments: {
-                                          //     'nama': namacontroler.text,
-                                          //     'kelas': kelascontroler.text,
-                                          //     'email': emailcontroler.text,
-                                          //   },
-                                          // ),
-                                        ),
-                                        (route) => false,
-                                      );
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text("Daftar Berhasil"),
-                                        ),
-                                      );
+                                        );
+
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => LoginEdu(),
+                                          ),
+                                        );
+                                      } catch (e) {
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              "Registrasi gagal: $e",
+                                            ),
+                                          ),
+                                        );
+                                      }
                                     } else {
                                       showDialog(
                                         context: context,
                                         builder: (context) {
                                           return AlertDialog(
-                                            title: Text("Validasi eror"),
+                                            title: Text("Validasi Error"),
                                             content: Text(
                                               "Tolong isi semua dengan benar",
                                             ),
                                             actions: [
                                               TextButton(
-                                                onPressed: () {
-                                                  Navigator.pop(context);
-                                                },
+                                                onPressed: () =>
+                                                    Navigator.pop(context),
                                                 child: Text("Ok"),
                                               ),
-                                              // TextButton(
-                                              //   onPressed: () {
-                                              //     Navigator.pop(context);
-                                              //   },
-                                              //   child: Text("Ga Ok"),
-                                              // ),
                                             ],
                                           );
                                         },
                                       );
-                                      // ScaffoldMessenger.of(
-                                      //   context,
-                                      // ).showSnackBar(
-                                      //   SnackBar(
-                                      //     content: Text(
-                                      //       "Masukan Semua Data Dengan Benar",
-                                      //     ),
-                                      //   ),
-                                      // );
                                     }
-                                    print('Nama: ${namacontroler.text}');
-                                    print('Email: ${emailcontroler.text}');
-                                    print('kelas: ${kelascontroler.text}');
-                                    final StudentModel dataStudent =
-                                        StudentModel(
-                                          name: namacontroler.text,
-                                          email: emailcontroler.text,
-                                          classs: kelascontroler.text,
-                                          age: int.parse(umurcontroler.text),
-                                          password: passwordController.text,
-                                          role: selectedRole,
-                                        );
-                                    DbHelper.registerUser(dataStudent);
                                   },
                                   child: Text(
                                     "Daftar",

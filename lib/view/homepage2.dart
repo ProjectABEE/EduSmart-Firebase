@@ -7,8 +7,7 @@ import 'package:edusmart/widget/schedule.dart';
 import 'package:flutter/material.dart';
 
 class HomePageGuruEdu extends StatefulWidget {
-  const HomePageGuruEdu({super.key, required this.name});
-  final String name;
+  const HomePageGuruEdu({super.key});
   @override
   State<HomePageGuruEdu> createState() => _HomePageGuruEduState();
 }

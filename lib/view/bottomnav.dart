@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 
 class BottomNavigationEDU extends StatefulWidget {
-  const BottomNavigationEDU({super.key, required this.name});
-  final String name;
+  const BottomNavigationEDU({super.key});
+
   @override
   State<BottomNavigationEDU> createState() => _BottomNavigationEDUState();
 }
@@ -20,7 +20,7 @@ class _BottomNavigationEDUState extends State<BottomNavigationEDU> {
   void initState() {
     super.initState();
     widgetOptions = [
-      HomePageEdu(name: widget.name),
+      HomePageEdu(),
       SchedulePage(),
       GradesPage(),
       ProfilePage(),

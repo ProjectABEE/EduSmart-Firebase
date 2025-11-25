@@ -1,5 +1,5 @@
-import 'package:edusmart/database/db_helper.dart';
 import 'package:edusmart/preferences/preferences_handler.dart';
+import 'package:edusmart/services/firebase.dart';
 import 'package:edusmart/view/bottomnav.dart';
 import 'package:edusmart/view/daftaredu.dart';
 import 'package:edusmart/view/homepage2.dart';
@@ -226,58 +226,60 @@ class _LoginEduState extends State<LoginEdu> {
                           ),
                         ),
                         onPressed: () async {
+                          if (!formKey.currentState!.validate()) return;
+
                           final email = emailController.text.trim();
                           final password = passwordController.text.trim();
-                          final user = await DbHelper.loginUser(
-                            email: email,
-                            password: password,
-                          );
-                          if (user != null) {
-                            PreferenceHandler.saveLogin(true);
-                            await saveUserSession(emailController.text);
-                            if (user.role == 'guru') {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      HomePageGuruEdu(name: user.name),
+
+                          try {
+                            final user = await FirebaseServices.loginUser(
+                              email: email,
+                              password: password,
+                            );
+
+                            if (user != null) {
+                              // Simpan status login
+                              await PreferenceHandler.saveLogin(true);
+                              await saveUserSession(email);
+
+                              // Role base navigation
+                              if (user.role == "guru") {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => HomePageGuruEdu(),
+                                  ),
+                                );
+                              } else {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BottomNavigationEDU(),
+                                  ),
+                                );
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    "Login berhasil sebagai ${user.role}",
+                                  ),
                                 ),
                               );
                             } else {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      BottomNavigationEDU(name: user.name),
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text("Email atau password salah"),
                                 ),
                               );
                             }
-                            // Navigator.pushReplacement(
-                            //   context,
-                            //   MaterialPageRoute(
-                            //     // Untuk memindahkan ke halaman tertuju
-                            //     builder: (context) => BottomNavigationEDU(
-                            //       name: user.name,
-                            //       // email: emailController.text,
-                            //       // nama: 'User',
-                            //       // kelas: '-',
-                            //       // umur: '-',
-                            //     ),
-                            //   ),
-                            // );
+                          } catch (e) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text("Login Berhasil ${user.role}"),
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Email Atau Password Salah '),
-                              ),
+                              SnackBar(content: Text("Login gagal: $e")),
                             );
                           }
                         },
+
                         child: Text(
                           "Log In",
                           style: TextStyle(color: Color(0xffFFFFFF)),
