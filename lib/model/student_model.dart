@@ -10,6 +10,7 @@ class StudentModel {
   final String? namaOrtu;
   final String? kontakOrtu;
   final String? role;
+  final String? profileImage; // <-- REQUIRED
 
   StudentModel({
     this.id,
@@ -23,6 +24,7 @@ class StudentModel {
     this.namaOrtu,
     this.kontakOrtu,
     this.role,
+    this.profileImage,
   });
 
   StudentModel copyWith({
@@ -37,6 +39,7 @@ class StudentModel {
     String? namaOrtu,
     String? kontakOrtu,
     String? role,
+    String? profileImage,
   }) {
     return StudentModel(
       id: id ?? this.id,
@@ -50,10 +53,10 @@ class StudentModel {
       namaOrtu: namaOrtu ?? this.namaOrtu,
       kontakOrtu: kontakOrtu ?? this.kontakOrtu,
       role: role ?? this.role,
+      profileImage: profileImage ?? this.profileImage,
     );
   }
 
-  /// 🔥 Untuk Firestore (pakai camelCase)
   Map<String, dynamic> toMap() {
     return {
       "name": name,
@@ -66,10 +69,10 @@ class StudentModel {
       "namaOrtu": namaOrtu,
       "kontakOrtu": kontakOrtu,
       "role": role,
+      "profileImage": profileImage, // <-- SAVE
     };
   }
 
-  /// 🔥 Baca data dari Firestore
   factory StudentModel.fromMap(Map<String, dynamic> json) {
     return StudentModel(
       id: json["id"],
@@ -83,6 +86,7 @@ class StudentModel {
       namaOrtu: json["namaOrtu"] ?? json["nama_ortu"],
       kontakOrtu: json["kontakOrtu"] ?? json["kontak_ortu"],
       role: json["role"] ?? "siswa",
+      profileImage: json["profileImage"], // <-- LOAD
     );
   }
 }

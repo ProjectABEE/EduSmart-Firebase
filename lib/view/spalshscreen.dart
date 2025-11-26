@@ -1,7 +1,7 @@
 import 'package:edusmart/constant/appimage.dart';
 import 'package:edusmart/preferences/preferences_handler.dart';
+import 'package:edusmart/view/auth/loginedu.dart';
 import 'package:edusmart/view/bottomnav.dart';
-import 'package:edusmart/view/loginedu.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -21,7 +21,6 @@ class _SplashScreenState extends State<SplashScreen> {
   isLoginFunction() async {
     Future.delayed(Duration(seconds: 1)).then((value) async {
       var isLogin = await PreferenceHandler.getLogin();
-      var name = await PreferenceHandler.getName();
       print(isLogin);
       if (isLogin != null && isLogin == true) {
         Navigator.pushAndRemoveUntil(

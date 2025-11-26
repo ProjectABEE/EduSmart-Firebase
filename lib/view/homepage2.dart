@@ -1,5 +1,5 @@
 import 'package:edusmart/preferences/preferences_handler.dart';
-import 'package:edusmart/view/loginedu.dart';
+import 'package:edusmart/view/auth/loginedu.dart';
 import 'package:edusmart/widget/announcementsW.dart';
 import 'package:edusmart/widget/daybox.dart';
 import 'package:edusmart/widget/nilai.dart';

@@ -1,7 +1,7 @@
-import 'package:edusmart/view/grades.dart';
-import 'package:edusmart/view/homepage.dart';
-import 'package:edusmart/view/profile.dart';
-import 'package:edusmart/view/schedule.dart';
+import 'package:edusmart/view/siswa/grades.dart';
+import 'package:edusmart/view/siswa/homepage.dart';
+import 'package:edusmart/view/siswa/profile/profile.dart';
+import 'package:edusmart/view/siswa/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 

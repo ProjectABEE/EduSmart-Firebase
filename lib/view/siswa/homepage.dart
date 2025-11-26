@@ -1,11 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
-import 'package:edusmart/view/AttendanceSection.dart';
+import 'package:edusmart/providers/user_provider.dart';
+import 'package:edusmart/view/siswa/absen/attendancesection.dart';
 import 'package:edusmart/widget/announcementsW.dart';
 import 'package:edusmart/widget/nilai.dart';
+import 'package:edusmart/widget/profileavatar.dart';
 import 'package:edusmart/widget/schedule.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class HomePageEdu extends StatefulWidget {
   const HomePageEdu({super.key});
@@ -17,29 +18,6 @@ class _HomePageEduState extends State<HomePageEdu> {
   StudentModel? student;
   bool isCheckedIn = false;
   bool isCheckedOut = false;
-  @override
-  void initState() {
-    super.initState();
-    _getFirebaseUser().then((value) {
-      setState(() {
-        student = value;
-      });
-    });
-  }
-
-  Future<StudentModel?> _getFirebaseUser() async {
-    final auth = FirebaseAuth.instance;
-    final firestore = FirebaseFirestore.instance;
-
-    final user = auth.currentUser;
-    if (user == null) return null;
-
-    final doc = await firestore.collection("students").doc(user.uid).get();
-
-    if (!doc.exists) return null;
-
-    return StudentModel.fromMap({"id": user.uid, ...doc.data()!});
-  }
 
   // Future<void> getData() async {
   //   final prefs = await SharedPreferences.getInstance();
@@ -115,35 +93,38 @@ class _HomePageEduState extends State<HomePageEdu> {
                     Padding(padding: EdgeInsetsGeometry.all(8)),
                     Row(
                       children: [
-                        CircleAvatar(
-                          radius: 26,
-                          backgroundImage: AssetImage('assets/images/abe2.png'),
+                        const ProfileAvatar(size: 30),
+                        const SizedBox(width: 10),
+
+                        Consumer<UserProvider>(
+                          builder: (context, provider, _) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Welcome back,",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                Text(
+                                  provider.student?.name ?? "Loading...",
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
                         ),
-                        SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              "Welcome back,",
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              student?.name ?? '-',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                              ),
-                            ),
-                          ],
-                        ),
-                        Spacer(),
-                        Icon(Icons.notifications_none_outlined, size: 26),
+
+                        const Spacer(),
+                        const Icon(Icons.notifications_none_outlined, size: 26),
                       ],
                     ),
+
                     SizedBox(height: 10),
                     Container(
                       height: 80,
@@ -217,24 +198,18 @@ class _HomePageEduState extends State<HomePageEdu> {
               //     ],
               //   ),
               //   child:
-              FutureBuilder<StudentModel?>(
-                future: _getFirebaseUser(), // 🔥 fungsi baru
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
+              Consumer<UserProvider>(
+                builder: (context, provider, _) {
+                  final student = provider.student;
+
+                  if (student == null) {
                     return const SizedBox(
-                      height: 220,
+                      height: 120,
                       child: Center(child: CircularProgressIndicator()),
                     );
                   }
 
-                  if (!snapshot.hasData || snapshot.data == null) {
-                    return const SizedBox(
-                      height: 220,
-                      child: Center(child: Text('Tidak ada data siswa')),
-                    );
-                  }
-
-                  return AttendanceSection(student: snapshot.data);
+                  return AttendanceSection(studentId: student.id!);
                 },
               ),
               // ),

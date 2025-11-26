@@ -1,6 +1,6 @@
 import 'package:edusmart/model/student_model.dart';
 import 'package:edusmart/services/firebase.dart';
-import 'package:edusmart/view/loginedu.dart';
+import 'package:edusmart/view/auth/loginedu.dart';
 import 'package:flutter/material.dart';
 
 class DaftarEdu extends StatefulWidget {
