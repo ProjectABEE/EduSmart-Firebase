@@ -32,4 +32,11 @@ class ScheduleProvider extends ChangeNotifier {
         .orderBy("start_time", descending: false)
         .snapshots();
   }
+
+  Stream<int> streamTotalSubjects() {
+    return FirebaseFirestore.instance
+        .collection("subjects")
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
 }

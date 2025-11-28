@@ -1,4 +1,6 @@
 import 'package:edusmart/preferences/preferences_handler.dart';
+import 'package:edusmart/providers/grade_provider.dart';
+import 'package:edusmart/providers/schedule_provider.dart';
 import 'package:edusmart/view/auth/loginedu.dart';
 import 'package:edusmart/view/siswa/profile/editprofile.dart';
 import 'package:edusmart/widget/WidgetStatistic.dart';
@@ -139,21 +141,66 @@ class ProfilePage extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        statCard(
-                          "92%",
-                          "Attendance",
-                          Icons.calendar_today,
-                          Colors.blue,
+                        // statCard(
+                        //   "92%",
+                        //   "Attendance",
+                        //   Icons.calendar_today,
+                        //   Colors.blue,
+                        // ),
+                        Consumer2<GradeProvider, UserProvider>(
+                          builder: (context, gradeProvider, userProvider, _) {
+                            final student = userProvider.student;
+                            if (student == null) return SizedBox();
+
+                            return FutureBuilder<double>(
+                              future: gradeProvider.getAverageGrade(
+                                student.id!,
+                              ),
+                              builder: (context, snapshot) {
+                                if (!snapshot.hasData) {
+                                  return statCard(
+                                    "--", // sementara
+                                    "Avg Grade",
+                                    Icons.star,
+                                    Colors.orange,
+                                  );
+                                }
+
+                                final avg = snapshot.data!.toStringAsFixed(1);
+
+                                return statCard(
+                                  avg, // ⬅️ sekarang dynamic!
+                                  "Avg Grade",
+                                  Icons.star,
+                                  Colors.orange,
+                                );
+                              },
+                            );
+                          },
                         ),
-                        statCard(
-                          "89.5",
-                          "Avg Grade",
-                          Icons.star,
-                          Colors.orange,
+                        Consumer<ScheduleProvider>(
+                          builder: (context, provider, _) {
+                            return StreamBuilder<int>(
+                              stream: provider.streamTotalSubjects(),
+                              builder: (context, snapshot) {
+                                final count = snapshot.hasData
+                                    ? snapshot.data.toString()
+                                    : "--";
+
+                                return statCard(
+                                  count,
+                                  "Courses",
+                                  Icons.book,
+                                  Colors.purple,
+                                );
+                              },
+                            );
+                          },
                         ),
-                        statCard("8", "Courses", Icons.book, Colors.purple),
+
+                        //statCard("8", "Courses", Icons.book, Colors.purple),
                       ],
                     ),
                   ),

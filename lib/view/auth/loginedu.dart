@@ -56,7 +56,7 @@ class _LoginEduState extends State<LoginEdu> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SizedBox(height: 20),
+              SizedBox(height: 100),
               Image.asset("assets/images/EduSmart.png", scale: 12),
               SizedBox(height: 4),
               // Kotak login

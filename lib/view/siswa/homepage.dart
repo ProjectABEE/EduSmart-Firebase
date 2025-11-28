@@ -539,6 +539,16 @@ class _HomePageEduState extends State<HomePageEdu> {
                                 itemCount: grades.length,
                                 itemBuilder: (context, index) {
                                   final item = grades[index];
+                                  int change = 0;
+
+                                  if (index < grades.length - 1) {
+                                    final nextItem =
+                                        grades[index +
+                                            1]; // nilai sebelumnya (karena descending)
+                                    change =
+                                        (item["score"] ?? 0) -
+                                        (nextItem["score"] ?? 0);
+                                  }
 
                                   return GradeTile(
                                     subject:
@@ -547,7 +557,7 @@ class _HomePageEduState extends State<HomePageEdu> {
                                     score: item["score"] ?? 0,
                                     color: Colors.blue,
                                     change:
-                                        0, // next bisa tambahin algoritma perubahan nilai
+                                        change, // next bisa tambahin algoritma perubahan nilai
                                   );
                                 },
                               );
