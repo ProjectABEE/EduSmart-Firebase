@@ -1,4 +1,5 @@
-import 'package:edusmart/widget/taksitem.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class GradesPage extends StatefulWidget {
@@ -9,26 +10,48 @@ class GradesPage extends StatefulWidget {
 }
 
 class _GradesPageState extends State<GradesPage> {
+  Future<Map<String, List<Map<String, dynamic>>>> fetchGrades() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return {};
+
+    final gradeSnapshot = await FirebaseFirestore.instance
+        .collection("grades")
+        .where("student_id", isEqualTo: user.uid)
+        .orderBy("date", descending: true)
+        .get();
+
+    final subjectSnapshot = await FirebaseFirestore.instance
+        .collection("subjects")
+        .get();
+
+    // mapping: subject_id → subject_name
+    Map<String, String> subjectMap = {
+      for (var doc in subjectSnapshot.docs) doc.id: doc['subject_name'],
+    };
+
+    Map<String, List<Map<String, dynamic>>> groupedData = {};
+
+    for (var gradeDoc in gradeSnapshot.docs) {
+      final grade = gradeDoc.data();
+
+      final subjectName =
+          subjectMap[grade['subject_id']] ?? "Unknown Subject"; // FIX HERE
+
+      groupedData.putIfAbsent(subjectName, () => []);
+      groupedData[subjectName]!.add(grade);
+    }
+
+    return groupedData;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () async {
-      //     await Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (context) => AddGradePage()),
-      //     );
-      //     setState(() {}); // refresh setelah balik
-      //   },
-      //   backgroundColor: const Color(0xFF2567E8),
-      //   child: const Icon(Icons.add, color: Colors.white),
-      // ),
-      body: SingleChildScrollView(
-        child: Container(
-          decoration: BoxDecoration(color: Colors.white),
+      body: SafeArea(
+        child: SingleChildScrollView(
           child: Column(
             children: [
-              // Grade atas biru
+              // Header
               Container(
                 height: 100,
                 width: double.infinity,
@@ -39,914 +62,184 @@ class _GradesPageState extends State<GradesPage> {
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 15),
-                    Text(
-                      "Grades",
-                      style: TextStyle(fontSize: 30, color: Colors.white),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 24),
-              // Academic Performance
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          "Academic Performance",
-                          style: TextStyle(fontSize: 24),
-                        ),
-                        Text(
-                          "Current Semester",
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-                    Spacer(),
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Color(0x1000C950),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(
-                        Icons.workspace_premium,
-                        color: Color(0xff00C950),
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 16),
-              // Container Overal avarage
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 220,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Color(0xff00AAFF),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 20, right: 20),
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 8, top: 16),
-                        child: Row(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Overal Avarage",
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  Text(
-                                    "90",
-                                    style: TextStyle(
-                                      fontSize: 30,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Spacer(),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Color(0xff38bdff),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Icon(
-                                Icons.bar_chart,
-                                color: Colors.white,
-                                size: 60,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Spacer(),
-                      Row(
-                        children: [
-                          Container(
-                            height: 70,
-                            width: 145,
-                            decoration: BoxDecoration(
-                              color: Color(0xff38bdff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Highest",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  Text(
-                                    "95",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          Spacer(),
-                          Container(
-                            height: 70,
-                            width: 145,
-                            decoration: BoxDecoration(
-                              color: Color(0xff38bdff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8.0),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    "Lowest",
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  Text(
-                                    "40",
-                                    style: TextStyle(
-                                      fontSize: 20,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+                child: const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    "Grades",
+                    style: TextStyle(fontSize: 28, color: Colors.white),
                   ),
                 ),
               ),
-              // 1
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.purple,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "95",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
+
+              const SizedBox(height: 20),
+
+              FutureBuilder(
+                future: fetchGrades(),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Padding(
+                      padding: EdgeInsets.all(50),
+                      child: CircularProgressIndicator(),
+                    );
+                  }
+
+                  final grades = snapshot.data!;
+
+                  if (grades.isEmpty) {
+                    return const Padding(
+                      padding: EdgeInsets.all(50),
+                      child: Text(
+                        "Belum ada nilai 😢",
+                        style: TextStyle(fontSize: 18),
+                      ),
+                    );
+                  }
+
+                  return ListView(
+                    shrinkWrap: true,
+                    physics: NeverScrollableScrollPhysics(),
+                    children: grades.entries.map((entry) {
+                      final subjectName = entry.key;
+                      final subjectGrades = entry.value;
+
+                      final average =
+                          subjectGrades
+                              .map((e) => e['score'] as num)
+                              .reduce((a, b) => a + b) /
+                          subjectGrades.length;
+
+                      final highest = subjectGrades
+                          .map((e) => e['score'])
+                          .reduce((a, b) => a > b ? a : b);
+
+                      final lowest = subjectGrades
+                          .map((e) => e['score'])
+                          .reduce((a, b) => a < b ? a : b);
+
+                      return Container(
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 10,
                         ),
-                        const SizedBox(width: 12),
-                        Column(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withOpacity(0.15),
+                              blurRadius: 15,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              "Mathematics",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
                             Row(
-                              children: const [
-                                Icon(
-                                  Icons.arrow_upward,
-                                  size: 14,
-                                  color: Colors.greenAccent,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 12,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    average.toStringAsFixed(1),
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Improving",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.greenAccent,
+                                SizedBox(width: 12),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      subjectName,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                    SizedBox(height: 4),
+                                    Text(
+                                      "Tests: ${subjectGrades.length}",
+                                      style: TextStyle(color: Colors.grey),
+                                    ),
+                                  ],
+                                ),
+                                Spacer(),
+                                Container(
+                                  constraints: BoxConstraints(maxWidth: 110),
+                                  padding: EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    "Min: $lowest | Max: $highest",
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(fontSize: 12),
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "3 tests",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.95, // 92%
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          LessonPerformance(
-                            subject: "Quiz 1",
-                            date: "Oct 15",
-                            score: "90",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Mid-Term",
-                            date: "Oct 20",
-                            score: "95",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Assignment",
-                            date: "Oct 24",
-                            score: "98",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 2
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "80",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Physics",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.arrow_upward,
-                                  size: 14,
-                                  color: Colors.greenAccent,
+
+                            SizedBox(height: 16),
+
+                            Stack(
+                              children: [
+                                Container(
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade300,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
                                 ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Improving",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.greenAccent,
+                                FractionallySizedBox(
+                                  widthFactor: average / 100,
+                                  child: Container(
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black87,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "3 tests",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.88, // 92%
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          LessonPerformance(
-                            subject: "Lab Report",
-                            date: "Oct 16",
-                            score: "85",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Quiz 2",
-                            date: "Oct 21",
-                            score: "88",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Practical",
-                            date: "Oct 25",
-                            score: "90",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 3
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xff00C950),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "92",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "English Literature",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.arrow_downward,
-                                  size: 14,
-                                  color: Colors.redAccent,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Needs attention",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.redAccent,
+
+                            const SizedBox(height: 16),
+
+                            Column(
+                              children: subjectGrades.map((g) {
+                                return ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(g["assessment_name"]),
+                                  subtitle: Text(g["date"]),
+                                  trailing: Text(
+                                    g["score"].toString(),
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                );
+                              }).toList(),
                             ),
                           ],
                         ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "3 tests",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.92, // 92%
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          LessonPerformance(
-                            subject: "Essay 1",
-                            date: "Oct 14",
-                            score: "95",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Quiz",
-                            date: "Oct 19",
-                            score: "92",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Presentation",
-                            date: "Oct 23",
-                            score: "89",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 4
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.orangeAccent,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "85",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Chemistry",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.arrow_upward,
-                                  size: 14,
-                                  color: Colors.greenAccent,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Improving",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.greenAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "3 tests",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.85, // 92%
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          LessonPerformance(
-                            subject: "Quiz 1",
-                            date: "Oct 13",
-                            score: "78",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Lab Work",
-                            date: "Oct 18",
-                            score: "85",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Mid Term",
-                            date: "Oct 22",
-                            score: "92",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // 5
-              Container(
-                margin: const EdgeInsets.symmetric(
-                  horizontal: 20,
-                  vertical: 10,
-                ),
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.15),
-                      blurRadius: 15,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 12,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xff00C950),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "88",
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              "Biology",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: const [
-                                Icon(
-                                  Icons.arrow_upward,
-                                  size: 14,
-                                  color: Colors.greenAccent,
-                                ),
-                                SizedBox(width: 4),
-                                Text(
-                                  "Improving",
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: Colors.greenAccent,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: const Text(
-                            "3 tests",
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Stack(
-                      children: [
-                        Container(
-                          height: 8,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade300,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                        FractionallySizedBox(
-                          widthFactor: 0.88, // 92%
-                          child: Container(
-                            height: 8,
-                            decoration: BoxDecoration(
-                              color: Colors.black87,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          LessonPerformance(
-                            subject: "Practical",
-                            date: "Oct 12",
-                            score: "88",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Quiz 2",
-                            date: "Oct 17",
-                            score: "86",
-                          ),
-                          SizedBox(height: 4),
-                          LessonPerformance(
-                            subject: "Assignment",
-                            date: "Oct 23",
-                            score: "90",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
             ],
           ),

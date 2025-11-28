@@ -1,6 +1,3 @@
-import 'dart:io';
-
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/preferences/preferences_handler.dart';
 import 'package:edusmart/view/auth/loginedu.dart';
 import 'package:edusmart/view/siswa/profile/editprofile.dart';
@@ -9,74 +6,36 @@ import 'package:edusmart/widget/infotile.dart';
 import 'package:edusmart/widget/judulW.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../providers/user_provider.dart';
 
-class ProfilePage extends StatefulWidget {
+// Diubah menjadi StatelessWidget
+class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
 
-  @override
-  State<ProfilePage> createState() => _ProfilePageState();
-}
-
-class _ProfilePageState extends State<ProfilePage> {
-  bool uploading = false;
-
-  /// 📷 Upload ke Supabase + update Firestore + notify Provider
-  Future<void> changePhoto() async {
-    final picker = ImagePicker();
-    final file = await picker.pickImage(source: ImageSource.gallery);
-
-    if (file == null) return;
-
-    setState(() => uploading = true);
-
-    final supabase = Supabase.instance.client;
-    final userId = FirebaseAuth.instance.currentUser!.uid;
-    final ext = file.path.split('.').last;
-    final filePath = "profile/$userId.$ext";
-
-    try {
-      final bytes = await File(file.path).readAsBytes();
-
-      await supabase.storage
-          .from('students')
-          .uploadBinary(
-            filePath,
-            bytes,
-            fileOptions: const FileOptions(upsert: true),
-          );
-
-      final url = supabase.storage.from('students').getPublicUrl(filePath);
-
-      await FirebaseFirestore.instance
-          .collection("students")
-          .doc(userId)
-          .update({"profileImage": url});
-
-      // 🔥 Provider update foto agar auto refresh UI
-      if (mounted) {
-        context.read<UserProvider>().updateImage(url);
-      }
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Foto berhasil diperbarui 🎉")),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text("Upload gagal: $e")));
-    } finally {
-      setState(() => uploading = false);
-    }
+  // Fungsi Logout dipisah agar ProfilePage tetap bersih
+  void _logout(BuildContext context) {
+    FirebaseAuth.instance.signOut();
+    PreferenceHandler.removeLogin();
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginEdu()),
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final student = context.watch<UserProvider>().student;
+    // Watch UserProvider untuk data student dan status uploading
+    final userProvider = context.watch<UserProvider>();
+    final student = userProvider.student;
+
+    // Read UserProvider untuk memanggil fungsi (tanpa listen/rebuild)
+    final userProviderRead = context.read<UserProvider>();
+
+    // Status uploading yang diambil dari Provider
+    final uploading = userProvider.isUploading;
 
     return Scaffold(
       backgroundColor: const Color(0xfff7f9fc),
@@ -100,7 +59,10 @@ class _ProfilePageState extends State<ProfilePage> {
                     child: Column(
                       children: [
                         GestureDetector(
-                          onTap: changePhoto,
+                          // Panggil fungsi Provider (changePhoto)
+                          onTap: uploading
+                              ? null
+                              : () => userProviderRead.changePhoto(context),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
@@ -115,6 +77,7 @@ class _ProfilePageState extends State<ProfilePage> {
                                           as ImageProvider,
                               ),
 
+                              // Menggunakan state uploading dari Provider
                               if (uploading)
                                 Container(
                                   width: 100,
@@ -172,6 +135,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   const SizedBox(height: 20),
 
                   /// 🔹 Stats Section
+                  // ... (Bagian statistik tetap sama)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
@@ -221,14 +185,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Padding(
                     padding: const EdgeInsets.only(left: 16),
                     child: TextButton(
-                      onPressed: () {
-                        FirebaseAuth.instance.signOut();
-                        PreferenceHandler.removeLogin();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => LoginEdu()),
-                        );
-                      },
+                      // Panggil fungsi logout lokal
+                      onPressed: () => _logout(context),
                       child: const Row(
                         children: [
                           Icon(Icons.logout, color: Colors.red),

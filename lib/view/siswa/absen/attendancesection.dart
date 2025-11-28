@@ -26,8 +26,6 @@ class _AttendanceSectionState extends State<AttendanceSection> {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AttendanceProvider>();
-    final now = DateTime.now();
-    final monday = now.subtract(Duration(days: now.weekday - 1));
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 15),
@@ -117,24 +115,19 @@ class _AttendanceSectionState extends State<AttendanceSection> {
 
           SizedBox(height: 16),
 
-          /// WEEK BOXES
+          /// WEEK CIRCLES
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: List.generate(5, (i) {
-              final d = DateFormat(
+            children: p.weeklyData.map((e) {
+              final day = DateFormat(
                 'E',
-              ).format(monday.add(Duration(days: i))).substring(0, 3);
-              final s = p.weeklyData.length > i
-                  ? p.weeklyData[i]["status"]
-                  : "none";
-
-              return _dayCircle(d, s);
-            }),
+              ).format(DateTime.parse(e["date"])).substring(0, 3);
+              return _dayCircle(day, e["status"]);
+            }).toList(),
           ),
 
           SizedBox(height: 16),
 
-          /// ACTIONS
           Row(
             children: [
               Expanded(

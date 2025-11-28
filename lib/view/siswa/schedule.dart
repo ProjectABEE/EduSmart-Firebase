@@ -1,41 +1,142 @@
-import 'package:edusmart/widget/schedule.dart';
+import 'package:edusmart/providers/schedule_provider.dart';
+import 'package:edusmart/widget/schedule.dart'; // Asumsi widget ini ada
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-class SchedulePage extends StatefulWidget {
+// Diubah dari StatefulWidget menjadi StatelessWidget
+class SchedulePage extends StatelessWidget {
   const SchedulePage({super.key});
 
-  @override
-  State<SchedulePage> createState() => _SchedulePageState();
-}
+  // Widget ini dipindahkan dan sekarang memanggil Provider
+  Widget scheduleContainer(BuildContext context, String titleEnglish) {
+    // Gunakan .read karena kita hanya memanggil fungsi (stream) dan tidak mendengarkan
+    final provider = context.read<ScheduleProvider>();
 
-class _SchedulePageState extends State<SchedulePage> {
+    return StreamBuilder(
+      // Panggil fungsi Stream dari Provider
+      stream: provider.getSubjectsFor(titleEnglish),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            height: 150,
+            alignment: Alignment.center,
+            child: const CircularProgressIndicator(),
+          );
+        }
+
+        if (snapshot.hasError) {
+          return Container(
+            height: 150,
+            alignment: Alignment.center,
+            child: Text("Error loading schedule: ${snapshot.error}"),
+          );
+        }
+
+        final docs = snapshot.data!.docs;
+
+        return Container(
+          padding: const EdgeInsets.only(left: 20),
+          margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+          height:
+              474, // PERHATIAN: Tinggi fixed (474) bisa menyebabkan error rendering jika konten terlalu banyak.
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(30),
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.5),
+                spreadRadius: 1,
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              /// TITLE + COUNT
+              Padding(
+                padding: const EdgeInsets.only(top: 20, left: 8, right: 24),
+                child: Row(
+                  children: [
+                    // Ambil nama hari versi Indonesia dari Provider
+                    Text(
+                      provider.dayMapping[titleEnglish] ?? titleEnglish,
+                      style: const TextStyle(fontSize: 18),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xffeaf0ff),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text("${docs.length} classes"),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              /// DATA LIST
+              Expanded(
+                child: docs.isEmpty
+                    ? const Center(child: Text("Tidak ada Jadwal Hari Ini"))
+                    : ListView.builder(
+                        padding: EdgeInsets.zero,
+                        itemCount: docs.length,
+                        itemBuilder: (_, i) {
+                          final d = docs[i].data() as Map<String, dynamic>;
+
+                          final colors = [
+                            Colors.purple,
+                            Colors.blue,
+                            Colors.orange,
+                            Colors.green,
+                            Colors.teal,
+                            Colors.redAccent,
+                            Colors.deepPurpleAccent,
+                          ];
+
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: ScheduleTile(
+                              color: colors[i % colors.length],
+                              subject: d["subject_name"],
+                              teacher: d["teacher_name"],
+                              room: d["room"],
+                              time: "${d["start_time"]} - ${d["end_time"]}",
+                            ),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // floatingActionButton: FloatingActionButton(
-      //   onPressed: () async {
-      //     await Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (context) => AddGSubjectPage()),
-      //     );
-      //     setState(() {}); // refresh setelah balik
-      //   },
-      //   backgroundColor: const Color(0xFF2567E8),
-      //   child: const Icon(Icons.add, color: Colors.white),
-      // ),
       body: SingleChildScrollView(
         child: Container(
-          decoration: BoxDecoration(color: Colors.white),
+          color: Colors.white,
           child: Column(
             children: [
-              // Schedule atas biru
+              /// HEADER (Stateless)
               Container(
                 height: 100,
                 width: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 16,
+                ),
                 decoration: BoxDecoration(
-                  color: Color(0XFF2567E8),
-                  borderRadius: BorderRadius.only(
+                  color: const Color(0XFF2567E8),
+                  borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(30),
                     bottomRight: Radius.circular(30),
                   ),
@@ -48,8 +149,7 @@ class _SchedulePageState extends State<SchedulePage> {
                     ),
                   ],
                 ),
-
-                child: Column(
+                child: const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SizedBox(height: 15),
@@ -60,9 +160,12 @@ class _SchedulePageState extends State<SchedulePage> {
                   ],
                 ),
               ),
-              SizedBox(height: 24),
+
+              const SizedBox(height: 24),
+
+              /// SECTION HEADER (Stateless)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: 20),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
@@ -70,20 +173,17 @@ class _SchedulePageState extends State<SchedulePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text("Class Schedule", style: TextStyle(fontSize: 24)),
-                        Text(
-                          "Week of Oct 27-31, 2025",
-                          style: TextStyle(fontSize: 16),
-                        ),
+                        Text("Week Overview", style: TextStyle(fontSize: 16)),
                       ],
                     ),
                     Spacer(),
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xffeaf0ff),
+                        color: Color(0xffeaf0ff),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.calendar_today,
                         color: Color(0xff3b82f6),
                         size: 24,
@@ -92,386 +192,16 @@ class _SchedulePageState extends State<SchedulePage> {
                   ],
                 ),
               ),
-              SizedBox(height: 16),
-              // Container Monday
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 474,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 20,
-                        left: 8,
-                        right: 24,
-                      ),
-                      child: Row(
-                        children: [
-                          Text("Monday", style: TextStyle(fontSize: 18)),
-                          Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffeaf0ff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text("4 classes"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.purple,
-                            subject: "Mathematics",
-                            teacher: "Mr. Robert Wilson",
-                            room: "Room 201",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.blue,
-                            subject: "Physics",
-                            teacher: "Mrs. Emily Davis",
-                            room: "Lab 1",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.green,
-                            subject: "English Literature",
-                            teacher: "Ms. Lisa Anderson",
-                            room: "Room 105",
-                            time: "12:00 - 13:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "Chemistry",
-                            teacher: "Dr. Michael Brown",
-                            room: "Lab 2",
-                            time: "13:45 - 15:15",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-              // Container Tuesday
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 474,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 20,
-                        left: 8,
-                        right: 24,
-                      ),
-                      child: Row(
-                        children: [
-                          Text("Tuesday", style: TextStyle(fontSize: 18)),
-                          Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffeaf0ff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text("3 classes"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.green,
-                            subject: "Biology",
-                            teacher: "Dr. Sarah Lee",
-                            room: "Lab 3",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "History",
-                            teacher: "Mr. James Wilson",
-                            room: "Room 302",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.purple,
-                            subject: "English Literature",
-                            teacher: "Mr. Robert Wilson",
-                            room: "Room 201",
-                            time: "12:00 - 13:30",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-              // Container Wednesday
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 474,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 20,
-                        left: 8,
-                        right: 24,
-                      ),
-                      child: Row(
-                        children: [
-                          Text("Wednesday", style: TextStyle(fontSize: 18)),
-                          Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffeaf0ff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text("4 classes"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "Chemistry",
-                            teacher: "Mr. Michael Brown",
-                            room: "Lab 2",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.green,
-                            subject: "English Literature",
-                            teacher: "Ms. Lisa Anderson",
-                            room: "Room 105",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.blue,
-                            subject: "Physics",
-                            teacher: "Mrs. Emily Davis",
-                            room: "Lab 1",
-                            time: "12:00 - 13:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "Physical Education",
-                            teacher: "Coach Martinez",
-                            room: "Gym",
-                            time: "13:45 - 15:15",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-              // Container Thursday
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 474,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 20,
-                        left: 8,
-                        right: 24,
-                      ),
-                      child: Row(
-                        children: [
-                          Text("Thursday", style: TextStyle(fontSize: 18)),
-                          Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffeaf0ff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text("3 classes"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.purple,
-                            subject: "Mathematics",
-                            teacher: "Mr. Robert Wilson",
-                            room: "Room 201",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.green,
-                            subject: "Biology",
-                            teacher: "Dr. Sarah Lee",
-                            room: "Lab 3",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.pink,
-                            subject: "Art & Design",
-                            teacher: "Ms. Clara White",
-                            room: "Art Studio",
-                            time: "12:00 - 13:30",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
-              // Container Friday
-              Container(
-                padding: EdgeInsets.only(left: 20),
-                margin: EdgeInsets.symmetric(horizontal: 15),
-                height: 474,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(30),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(
-                        top: 20,
-                        left: 8,
-                        right: 24,
-                      ),
-                      child: Row(
-                        children: [
-                          Text("Friday", style: TextStyle(fontSize: 18)),
-                          Spacer(),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: const Color(0xffeaf0ff),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text("3 classes"),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.blue,
-                            subject: "Physics",
-                            teacher: "Mrs. Emily Davis",
-                            room: "Lab 1",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "Chemistry",
-                            teacher: "Dr. Michael Brown",
-                            room: "Lab 2",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.deepPurpleAccent,
-                            subject: "Computer Science",
-                            teacher: "Mr. David Kim",
-                            room: "Lab",
-                            time: "12:00 - 13:30",
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(height: 30),
+
+              const SizedBox(height: 16),
+
+              /// LIST DAYS (Panggilan ke fungsi yang menggunakan Provider)
+              scheduleContainer(context, "Monday"),
+              scheduleContainer(context, "Tuesday"),
+              scheduleContainer(context, "Wednesday"),
+              scheduleContainer(context, "Thursday"),
+              scheduleContainer(context, "Friday"),
+              scheduleContainer(context, "Saturday"),
             ],
           ),
         ),

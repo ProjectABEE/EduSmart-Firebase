@@ -25,4 +25,14 @@ class PreferenceHandler {
     final pref = await SharedPreferences.getInstance();
     return pref.getString('name');
   }
+
+  static Future<void> saveRole(String role) async {
+    final pref = await SharedPreferences.getInstance();
+    await pref.setString("role", role);
+  }
+
+  static Future<String?> getRole() async {
+    final pref = await SharedPreferences.getInstance();
+    return pref.getString("role");
+  }
 }

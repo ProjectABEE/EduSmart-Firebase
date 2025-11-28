@@ -1,4 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
+import 'package:edusmart/providers/grade_provider.dart';
 import 'package:edusmart/providers/user_provider.dart';
 import 'package:edusmart/view/siswa/absen/attendancesection.dart';
 import 'package:edusmart/widget/announcementsW.dart';
@@ -6,6 +8,7 @@ import 'package:edusmart/widget/nilai.dart';
 import 'package:edusmart/widget/profileavatar.dart';
 import 'package:edusmart/widget/schedule.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 class HomePageEdu extends StatefulWidget {
@@ -19,26 +22,6 @@ class _HomePageEduState extends State<HomePageEdu> {
   bool isCheckedIn = false;
   bool isCheckedOut = false;
 
-  // Future<void> getData() async {
-  //   final prefs = await SharedPreferences.getInstance();
-  //   final email = prefs.getString('email');
-
-  //   if (email != null) {
-  //     final db = await DbHelper.db();
-  //     final result = await db.query(
-  //       DbHelper.tableStudent,
-  //       where: 'email = ?',
-  //       whereArgs: [email],
-  //     );
-
-  //     if (result.isNotEmpty) {
-  //       setState(() {
-  //         student = StudentModel.fromMap(result.first);
-  //       });
-  //     }
-  //   }
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -47,27 +30,6 @@ class _HomePageEduState extends State<HomePageEdu> {
           decoration: BoxDecoration(color: Colors.white),
           child: Column(
             children: [
-              // Padding(
-              //   padding: const EdgeInsets.only(left: 16),
-              //   child: TextButton(
-              //     onPressed: () {
-              //       PreferenceHandler.removeLogin();
-              //       FirebaseAuth.instance.signOut();
-              //       Navigator.pushAndRemoveUntil(
-              //         context,
-              //         MaterialPageRoute(builder: (_) => LoginEdu()),
-              //         (_) => false,
-              //       );
-              //     },
-              //     child: Row(
-              //       children: [
-              //         Icon(Icons.logout, color: Colors.red),
-              //         SizedBox(width: 8),
-              //         Text("Logout", style: TextStyle(color: Colors.red)),
-              //       ],
-              //     ),
-              //   ),
-              // ),
               // Profil Atas Biru
               Container(
                 height: 200,
@@ -183,21 +145,6 @@ class _HomePageEduState extends State<HomePageEdu> {
                 ),
               ),
               SizedBox(height: 16),
-              // Container(
-              //   margin: EdgeInsets.symmetric(horizontal: 15),
-              //   decoration: BoxDecoration(
-              //     borderRadius: BorderRadius.circular(30),
-              //     color: Colors.white,
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.grey.withOpacity(0.5),
-              //         spreadRadius: 1,
-              //         blurRadius: 20,
-              //         offset: const Offset(0, 8),
-              //       ),
-              //     ],
-              //   ),
-              //   child:
               Consumer<UserProvider>(
                 builder: (context, provider, _) {
                   final student = provider.student;
@@ -212,372 +159,6 @@ class _HomePageEduState extends State<HomePageEdu> {
                   return AttendanceSection(studentId: student.id!);
                 },
               ),
-              // ),
-
-              // Container Attendance
-              // Container(
-              //   margin: EdgeInsets.symmetric(horizontal: 15),
-              //   decoration: BoxDecoration(
-              //     borderRadius: BorderRadius.circular(30),
-              //     color: Colors.white,
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.grey.withOpacity(0.5),
-              //         spreadRadius: 1,
-              //         blurRadius: 20,
-              //         offset: const Offset(0, 8),
-              //       ),
-              //     ],
-              //   ),
-              //   child: FutureBuilder<StudentModel?>(
-              //     future: DbHelper.getStudentFromPrefs(),
-              //     builder: (context, snapshot) {
-              //       if (snapshot.connectionState == ConnectionState.waiting) {
-              //         return const SizedBox(
-              //           height: 220,
-              //           child: Center(child: CircularProgressIndicator()),
-              //         );
-              //       }
-              //       if (!snapshot.hasData || snapshot.data == null) {
-              //         return const SizedBox(
-              //           height: 220,
-              //           child: Center(child: Text('Tidak ada data siswa')),
-              //         );
-              //       }
-              //       // ✅ kirim student yang sudah pasti tidak null
-              //       return AttendanceSection(student: snapshot.data);
-              //     },
-              //   ),
-              // ),
-
-              // Container(
-              //   margin: EdgeInsets.symmetric(horizontal: 15),
-              //   decoration: BoxDecoration(
-              //     borderRadius: BorderRadius.circular(30),
-              //     color: Colors.white,
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.grey.withOpacity(0.5),
-              //         spreadRadius: 1,
-              //         blurRadius: 20,
-              //         offset: const Offset(0, 8),
-              //       ),
-              //     ],
-              //   ),
-              //   child: AttendanceSection(student: student),
-              // ),
-
-              // Container(
-              //   margin: EdgeInsets.symmetric(horizontal: 15),
-              //   height: 500,
-              //   decoration: BoxDecoration(
-              //     borderRadius: BorderRadius.circular(30),
-              //     color: Colors.white,
-              //     boxShadow: [
-              //       BoxShadow(
-              //         color: Colors.grey.withOpacity(0.5),
-              //         spreadRadius: 1,
-              //         blurRadius: 20,
-              //         offset: const Offset(0, 8),
-              //       ),
-              //     ],
-              //   ),
-              //   child: Column(
-              //     children: [
-              //       Padding(
-              //         padding: const EdgeInsets.all(20.0),
-              //         child: Row(
-              //           children: [
-              //             Container(
-              //               padding: const EdgeInsets.all(8),
-              //               decoration: BoxDecoration(
-              //                 color: const Color(0xffeaf0ff),
-              //                 borderRadius: BorderRadius.circular(12),
-              //               ),
-              //               child: const Icon(
-              //                 Icons.calendar_today,
-              //                 color: Color(0xff3b82f6),
-              //                 size: 20,
-              //               ),
-              //             ),
-              //             SizedBox(width: 10),
-              //             Text("Attendance", style: TextStyle(fontSize: 18)),
-              //             Spacer(),
-              //             InkWell(
-              //               onTap: () {
-              //                 Navigator.push(
-              //                   context,
-              //                   MaterialPageRoute(
-              //                     builder: (context) =>
-              //                         HomePageGuruEdu(name: 'name'),
-              //                   ),
-              //                 );
-              //               },
-              //               child: Row(
-              //                 children: [
-              //                   Icon(Icons.access_time),
-              //                   SizedBox(width: 4),
-              //                   Text("History"),
-              //                 ],
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       ),
-
-              //       SizedBox(height: 4),
-              //       Container(
-              //         width: 320,
-              //         padding: EdgeInsets.symmetric(
-              //           horizontal: 16,
-              //           vertical: 14,
-              //         ),
-              //         decoration: BoxDecoration(
-              //           color: Color(0xfff8fbff),
-              //           borderRadius: BorderRadius.circular(16),
-              //         ),
-              //         child: isCheckedIn
-              //             ? Column(
-              //                 crossAxisAlignment: CrossAxisAlignment.start,
-              //                 children: [
-              //                   Column(
-              //                     crossAxisAlignment: CrossAxisAlignment.start,
-              //                     children: [
-              //                       const Text(
-              //                         "Status Absensi Hari Ini",
-              //                         style: TextStyle(
-              //                           fontWeight: FontWeight.bold,
-              //                           fontSize: 16,
-              //                         ),
-              //                       ),
-              //                       const SizedBox(height: 6),
-              //                       Text(
-              //                         "Check In: ${todayAttendance?['check_in'] ?? '-'}",
-              //                       ),
-              //                       Text(
-              //                         "Check Out: ${todayAttendance?['check_out'] ?? '-'}",
-              //                       ),
-              //                       // Text(
-              //                       //   "This Week",
-              //                       //   style: TextStyle(
-              //                       //     color: Colors.black87,
-              //                       //     fontWeight: FontWeight.w500,
-              //                       //   ),
-              //                       // ),
-              //                       // Spacer(),
-              //                       // Text(
-              //                       //   "92%",
-              //                       //   style: TextStyle(
-              //                       //     color: Color(0xff3b82f6),
-              //                       //     fontWeight: FontWeight.w600,
-              //                       //   ),
-              //                       // ),
-              //                     ],
-              //                   ),
-              //                   const SizedBox(height: 10),
-              //                   Stack(
-              //                     children: [
-              //                       Container(
-              //                         height: 8,
-              //                         decoration: BoxDecoration(
-              //                           color: Colors.grey.shade300,
-              //                           borderRadius: BorderRadius.circular(8),
-              //                         ),
-              //                       ),
-              //                       FractionallySizedBox(
-              //                         widthFactor: 0.92, // 92%
-              //                         child: Container(
-              //                           height: 8,
-              //                           decoration: BoxDecoration(
-              //                             color: Colors.black87,
-              //                             borderRadius: BorderRadius.circular(
-              //                               8,
-              //                             ),
-              //                           ),
-              //                         ),
-              //                       ),
-              //                     ],
-              //                   ),
-              //                   const SizedBox(height: 16),
-              //                   Row(
-              //                     mainAxisAlignment:
-              //                         MainAxisAlignment.spaceBetween,
-              //                     children: const [
-              //                       DayBox(day: "Mon", checked: true),
-              //                       DayBox(day: "Tue", checked: true),
-              //                       DayBox(day: "Wed", checked: true),
-              //                       DayBox(day: "Thu", checked: false),
-              //                       DayBox(day: "Fri", checked: true),
-              //                     ],
-              //                   ),
-              //                 ],
-              //               )
-              //             : const Text("Belum Check In"),
-              //       ),
-              //       const SizedBox(height: 20),
-              //       Padding(
-              //         padding: const EdgeInsets.symmetric(horizontal: 24),
-              //         child: Row(
-              //           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //           children: [
-              //             Expanded(
-              //               child: ElevatedButton.icon(
-              //                 onPressed: isCheckedIn
-              //                     ? null
-              //                     : () async {
-              //                         final now = DateTime.now()
-              //                             .toIso8601String()
-              //                             .substring(11, 16);
-              //                         final today = DateTime.now()
-              //                             .toIso8601String()
-              //                             .split('T')
-              //                             .first;
-
-              //                         final id =
-              //                             await DbHelper.insertAttendance({
-              //                               'student_id': student?.id,
-              //                               'date': today,
-              //                               'check_in': now,
-              //                               'check_out': null,
-              //                             });
-
-              //                         setState(() {
-              //                           isCheckedIn = true;
-              //                           todayAttendanceId = id;
-              //                         });
-
-              //                         await _refreshAttendance();
-              //                       },
-
-              //                 style: ElevatedButton.styleFrom(
-              //                   backgroundColor: const Color(0xff3b82f6),
-              //                   shape: RoundedRectangleBorder(
-              //                     borderRadius: BorderRadius.circular(12),
-              //                   ),
-              //                   padding: const EdgeInsets.symmetric(
-              //                     vertical: 14,
-              //                   ),
-              //                 ),
-              //                 icon: const Icon(
-              //                   Icons.access_time,
-              //                   color: Colors.white,
-              //                 ),
-              //                 label: Text(
-              //                   isCheckedIn ? "Sudah Check In" : "Check In",
-              //                   style: const TextStyle(
-              //                     fontWeight: FontWeight.w600,
-              //                     color: Colors.white,
-              //                   ),
-              //                 ),
-              //               ),
-              //             ),
-              //             const SizedBox(width: 12),
-              //             Expanded(
-              //               child: OutlinedButton(
-              //                 onPressed: isCheckedIn && !isCheckedOut
-              //                     ? () async {
-              //                         final now = DateTime.now()
-              //                             .toIso8601String()
-              //                             .substring(11, 16);
-              //                         await DbHelper.updateCheckOut(
-              //                           todayAttendanceId!,
-              //                           now,
-              //                         );
-
-              //                         setState(() {
-              //                           isCheckedOut = true;
-              //                         });
-
-              //                         await _refreshAttendance();
-              //                       }
-              //                     : null,
-
-              //                 style: OutlinedButton.styleFrom(
-              //                   side: const BorderSide(
-              //                     color: Color(0xff3b82f6),
-              //                     width: 2,
-              //                   ),
-              //                   shape: RoundedRectangleBorder(
-              //                     borderRadius: BorderRadius.circular(12),
-              //                   ),
-              //                   padding: const EdgeInsets.symmetric(
-              //                     vertical: 14,
-              //                   ),
-              //                 ),
-              //                 child: Text(
-              //                   isCheckedOut ? "Sudah Check Out" : "Check Out",
-              //                   style: const TextStyle(
-              //                     fontWeight: FontWeight.w600,
-              //                     color: Color(0xff3b82f6),
-              //                   ),
-              //                 ),
-              //               ),
-              //             ),
-              //           ],
-              //         ),
-              //       ),
-
-              //       // Padding(
-              //       //   padding: const EdgeInsets.symmetric(horizontal: 24),
-              //       //   child: Row(
-              //       //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //       //     children: [
-              //       //       Expanded(
-              //       //         child: ElevatedButton.icon(
-              //       //           onPressed: () {},
-              //       //           style: ElevatedButton.styleFrom(
-              //       //             backgroundColor: const Color(0xff3b82f6),
-              //       //             shape: RoundedRectangleBorder(
-              //       //               borderRadius: BorderRadius.circular(12),
-              //       //             ),
-              //       //             padding: const EdgeInsets.symmetric(
-              //       //               vertical: 14,
-              //       //             ),
-              //       //           ),
-              //       //           icon: const Icon(
-              //       //             Icons.access_time,
-              //       //             color: Colors.white,
-              //       //           ),
-              //       //           label: const Text(
-              //       //             "Check In",
-              //       //             style: TextStyle(
-              //       //               fontWeight: FontWeight.w600,
-              //       //               color: Colors.white,
-              //       //             ),
-              //       //           ),
-              //       //         ),
-              //       //       ),
-              //       //       const SizedBox(width: 12),
-              //       //       Expanded(
-              //       //         child: OutlinedButton(
-              //       //           onPressed: () {},
-              //       //           style: OutlinedButton.styleFrom(
-              //       //             side: const BorderSide(
-              //       //               color: Color(0xff3b82f6),
-              //       //               width: 2,
-              //       //             ),
-              //       //             shape: RoundedRectangleBorder(
-              //       //               borderRadius: BorderRadius.circular(12),
-              //       //             ),
-              //       //             padding: const EdgeInsets.symmetric(
-              //       //               vertical: 14,
-              //       //             ),
-              //       //           ),
-              //       //           child: const Text(
-              //       //             "Check Out",
-              //       //             style: TextStyle(
-              //       //               fontWeight: FontWeight.w600,
-              //       //               color: Color(0xff3b82f6),
-              //       //             ),
-              //       //           ),
-              //       //         ),
-              //       //       ),
-              //       //     ],
-              //       //   ),
-              //       // ),
-              //     ],
-              //   ),
-              // ),
               SizedBox(height: 30),
               // Container Annoucements
               Container(
@@ -696,12 +277,13 @@ class _HomePageEduState extends State<HomePageEdu> {
                       color: Colors.grey.withOpacity(0.5),
                       spreadRadius: 1,
                       blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      offset: Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
+                    /// -------- HEADER --------
                     Padding(
                       padding: const EdgeInsets.only(left: 2, right: 20),
                       child: Row(
@@ -718,63 +300,118 @@ class _HomePageEduState extends State<HomePageEdu> {
                               size: 20,
                             ),
                           ),
-                          // Icon(
-                          //   Icons.notifications_none_outlined,
-                          //   color: Color(0xffFF6900),
-                          //   size: 26,
-                          // ),
                           SizedBox(width: 8),
                           Text(
-                            "Today's Schadule",
+                            "Today's Schedule",
                             style: TextStyle(fontSize: 16.9),
                           ),
                           Spacer(),
-                          Text(
-                            "Monday",
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
+
+                          /// Auto detect hari dari WIB
+                          StreamBuilder(
+                            stream: Stream.periodic(Duration(seconds: 1)),
+                            builder: (_, __) {
+                              final now = DateTime.now().toUtc().add(
+                                Duration(hours: 7),
+                              );
+                              final eng = DateFormat('EEEE').format(now);
+
+                              final mapping = {
+                                "Monday": "Senin",
+                                "Tuesday": "Selasa",
+                                "Wednesday": "Rabu",
+                                "Thursday": "Kamis",
+                                "Friday": "Jumat",
+                                "Saturday": "Sabtu",
+                                "Sunday": "Libur",
+                              };
+
+                              return Text(
+                                mapping[eng] ?? '',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey,
+                                ),
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Column(
-                        children: [
-                          ScheduleTile(
-                            color: Colors.purple,
-                            subject: "Mathematics",
-                            teacher: "Mr. Robert Wilson",
-                            room: "Room 201",
-                            time: "08:00 - 09:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.blue,
-                            subject: "Physics",
-                            teacher: "Mrs. Emily Davis",
-                            room: "Lab 1",
-                            time: "09:45 - 11:15",
-                          ),
-                          ScheduleTile(
-                            color: Colors.green,
-                            subject: "English Literature",
-                            teacher: "Ms. Lisa Anderson",
-                            room: "Room 105",
-                            time: "12:00 - 13:30",
-                          ),
-                          ScheduleTile(
-                            color: Colors.orange,
-                            subject: "Chemistry",
-                            teacher: "Dr. Michael Brown",
-                            room: "Lab 2",
-                            time: "13:45 - 15:15",
-                          ),
-                        ],
+
+                    SizedBox(height: 12),
+
+                    /// -------- STREAM FIRESTORE --------
+                    Expanded(
+                      child: StreamBuilder(
+                        stream: (() {
+                          final now = DateTime.now().toUtc().add(
+                            Duration(hours: 7),
+                          );
+                          final eng = DateFormat('EEEE').format(now);
+                          final mapping = {
+                            "Monday": "Senin",
+                            "Tuesday": "Selasa",
+                            "Wednesday": "Rabu",
+                            "Thursday": "Kamis",
+                            "Friday": "Jumat",
+                            "Saturday": "Sabtu",
+                            "Sunday": "Libur",
+                          };
+
+                          final today = mapping[eng] ?? "Unknown";
+
+                          return FirebaseFirestore.instance
+                              .collection("subjects")
+                              .where("day", isEqualTo: today)
+                              .orderBy("start_time")
+                              .snapshots();
+                        })(),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+
+                          final docs = snapshot.data!.docs;
+
+                          if (docs.isEmpty) {
+                            return Center(
+                              child: Text("Tidak ada jadwal hari ini 😊"),
+                            );
+                          }
+
+                          final colors = [
+                            Colors.purple,
+                            Colors.blue,
+                            Colors.green,
+                            Colors.orange,
+                            Colors.teal,
+                            Colors.redAccent,
+                            Colors.indigo,
+                          ];
+
+                          return ListView.builder(
+                            padding: EdgeInsets.all(4),
+                            itemCount: docs.length,
+                            itemBuilder: (context, i) {
+                              final data = docs[i].data();
+                              return ScheduleTile(
+                                color: colors[i % colors.length],
+                                subject: data["subject_name"],
+                                teacher: data["teacher_name"],
+                                room: data["room"],
+                                time:
+                                    "${data["start_time"]} - ${data["end_time"]}",
+                              );
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
                 ),
               ),
+
               SizedBox(height: 30),
               // Container Recent Grades
               Container(
@@ -789,12 +426,13 @@ class _HomePageEduState extends State<HomePageEdu> {
                       color: Colors.grey.withOpacity(0.5),
                       spreadRadius: 1,
                       blurRadius: 20,
-                      offset: const Offset(0, 8),
+                      offset: Offset(0, 8),
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
+                    /// 🔹 Header Recent Grades + Average
                     Padding(
                       padding: const EdgeInsets.only(left: 2, right: 20),
                       child: Row(
@@ -811,68 +449,112 @@ class _HomePageEduState extends State<HomePageEdu> {
                               size: 20,
                             ),
                           ),
-                          // Icon(
-                          //   Icons.notifications_none_outlined,
-                          //   color: Color(0xffFF6900),
-                          //   size: 26,
-                          // ),
                           SizedBox(width: 8),
                           Text(
                             "Recent Grades",
                             style: TextStyle(fontSize: 16.9),
                           ),
                           Spacer(),
-                          Column(
-                            children: [
-                              Text(
-                                "Avarage",
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey,
+
+                          /// 🔹 Ambil rata-rata dari Provider
+                          Consumer2<GradeProvider, UserProvider>(
+                            builder: (context, gradeProvider, userProvider, _) {
+                              final student = userProvider.student;
+                              if (student == null) return SizedBox();
+
+                              return FutureBuilder<double>(
+                                future: gradeProvider.getAverageGrade(
+                                  student.id!,
                                 ),
-                              ),
-                              Text(
-                                "90",
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: Colors.blue,
-                                ),
-                              ),
-                            ],
+                                builder: (context, snapshot) {
+                                  if (!snapshot.hasData) {
+                                    return Text(
+                                      "--",
+                                      style: TextStyle(
+                                        fontSize: 20,
+                                        color: Colors.blue,
+                                      ),
+                                    );
+                                  }
+
+                                  final avg = snapshot.data!.toStringAsFixed(1);
+                                  return Column(
+                                    children: [
+                                      Text(
+                                        "Average",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                      Text(
+                                        avg,
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
+
                     SizedBox(height: 20),
-                    GradeTile(
-                      subject: "Mathematics",
-                      score: 95,
-                      color: Colors.purple,
-                      change: 5,
-                    ),
-                    GradeTile(
-                      subject: "Physics",
-                      score: 88,
-                      color: Colors.blue,
-                      change: 3,
-                    ),
-                    GradeTile(
-                      subject: "English",
-                      score: 92,
-                      color: Colors.green,
-                      change: -2,
-                    ),
-                    GradeTile(
-                      subject: "Chemistry",
-                      score: 85,
-                      color: Colors.orange,
-                      change: 8,
-                    ),
-                    GradeTile(
-                      subject: "Ngoding",
-                      score: 20,
-                      color: Colors.red,
-                      change: -40,
+
+                    /// 🔹 LIST NILAI DARI FIREBASE
+                    Expanded(
+                      child: Consumer2<GradeProvider, UserProvider>(
+                        builder: (context, gradeProvider, userProvider, _) {
+                          final student = userProvider.student;
+                          if (student == null) {
+                            return Center(child: CircularProgressIndicator());
+                          }
+
+                          return FutureBuilder<List<Map<String, dynamic>>>(
+                            future: gradeProvider.fetchRecentGrades(
+                              student.id!,
+                            ),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return Center(
+                                  child: CircularProgressIndicator(),
+                                );
+                              }
+
+                              final grades = snapshot.data ?? [];
+
+                              if (grades.isEmpty) {
+                                return Center(
+                                  child: Text("Belum ada nilai 📄"),
+                                );
+                              }
+
+                              return ListView.builder(
+                                itemCount: grades.length,
+                                itemBuilder: (context, index) {
+                                  final item = grades[index];
+
+                                  return GradeTile(
+                                    subject:
+                                        item["subject_name"] ??
+                                        "Unknown Subject",
+                                    score: item["score"] ?? 0,
+                                    color: Colors.blue,
+                                    change:
+                                        0, // next bisa tambahin algoritma perubahan nilai
+                                  );
+                                },
+                              );
+                            },
+                          );
+                        },
+                      ),
                     ),
                   ],
                 ),

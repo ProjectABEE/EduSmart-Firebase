@@ -1,7 +1,9 @@
 import 'package:edusmart/constant/appimage.dart';
 import 'package:edusmart/preferences/preferences_handler.dart';
+import 'package:edusmart/view/admin/bottom_navigation_admin.dart';
 import 'package:edusmart/view/auth/loginedu.dart';
-import 'package:edusmart/view/bottomnav.dart';
+import 'package:edusmart/view/guru/bottomnav.dart';
+import 'package:edusmart/view/siswa/bottomnav.dart';
 import 'package:flutter/material.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -19,23 +21,31 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   isLoginFunction() async {
-    Future.delayed(Duration(seconds: 1)).then((value) async {
-      var isLogin = await PreferenceHandler.getLogin();
-      print(isLogin);
-      if (isLogin != null && isLogin == true) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => BottomNavigationEDU()),
-          (route) => false,
-        );
+    await Future.delayed(const Duration(seconds: 1));
+
+    var isLogin = await PreferenceHandler.getLogin();
+    var role = await PreferenceHandler.getRole();
+
+    if (isLogin == true) {
+      // Arahkan sesuai role
+      if (role == "admin") {
+        goTo(const BottomNavigationAdmin());
+      } else if (role == "guru") {
+        goTo(const BottomNavGuru());
       } else {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => LoginEdu()),
-          (route) => false,
-        );
+        goTo(const BottomNavigationEDU()); // siswa default
       }
-    });
+    } else {
+      goTo(const LoginEdu());
+    }
+  }
+
+  goTo(Widget page) {
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => page),
+      (route) => false,
+    );
   }
 
   @override
@@ -49,13 +59,15 @@ class _SplashScreenState extends State<SplashScreen> {
             colors: [Color(0xff256BE8), Color(0xff1CE2DA)],
           ),
         ),
-        // Biar full tinggi layar
         width: double.infinity,
         height: double.infinity,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [Center(child: Image.asset(AppImages.logoEdu))],
+          children: [
+            Image.asset(AppImages.logoEdu, width: 120),
+            const SizedBox(height: 15),
+            const CircularProgressIndicator(color: Colors.white),
+          ],
         ),
       ),
     );

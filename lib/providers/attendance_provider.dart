@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 class AttendanceProvider extends ChangeNotifier {
@@ -15,27 +18,25 @@ class AttendanceProvider extends ChangeNotifier {
   List<Map<String, dynamic>> weeklyData = [];
   double weekPercent = 0;
 
+  /// Get REAL WIB time from reliable server
+  Future<DateTime?> getWIBTime() async {
+    try {
+      final res = await http.get(
+        Uri.parse("https://worldtimeapi.org/api/timezone/Asia/Jakarta"),
+      );
+      final data = jsonDecode(res.body);
+
+      return DateTime.parse(data["datetime"]);
+    } catch (e) {
+      return DateTime.now(); // fallback
+    }
+  }
+
   String _fmt(DateTime t) => DateFormat("HH:mm").format(t);
   String _date(DateTime t) => DateFormat("yyyy-MM-dd").format(t);
 
-  /// ==== GET SERVER TIME ====
-  Future<DateTime?> getServerTime() async {
-    final doc = await firestore.collection("server_time_check").add({
-      "timestamp": FieldValue.serverTimestamp(),
-    });
-
-    final snapshot = await doc.get();
-    await doc.delete();
-
-    if (snapshot.data()?["timestamp"] is Timestamp) {
-      return (snapshot.data()?["timestamp"] as Timestamp).toDate();
-    }
-    return null;
-  }
-
-  /// ==== LOAD TODAY DATA ====
   Future<void> loadToday(String studentId) async {
-    final now = await getServerTime();
+    final now = await getWIBTime();
     if (now == null) return;
 
     final today = _date(now);
@@ -67,13 +68,11 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ==== LOAD WEEK STATUS ====
   Future<void> loadWeek(String studentId) async {
-    final now = await getServerTime();
+    final now = await getWIBTime();
     if (now == null) return;
 
     final monday = now.subtract(Duration(days: now.weekday - 1));
-
     final dates = List.generate(5, (i) => _date(monday.add(Duration(days: i))));
 
     final snap = await firestore
@@ -100,16 +99,23 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ==== CHECK IN ====
   Future<void> checkIn(String studentId) async {
-    final now = await getServerTime();
+    final now = await getWIBTime();
     if (now == null) return;
 
     final day = _date(now);
     final time = _fmt(now);
 
+    final userSnap = await firestore
+        .collection("students")
+        .doc(studentId)
+        .get();
+    final userData = userSnap.data()!;
+
     final ref = await firestore.collection("attendance").add({
       "student_id": studentId,
+      "name": userData["name"],
+      "className": userData["className"],
       "date": day,
       "check_in": time,
       "check_out": null,
@@ -123,16 +129,15 @@ class AttendanceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// ==== CHECK OUT ====
   Future<void> checkOut(String studentId) async {
     if (todayDocId == null) return;
 
-    final now = await getServerTime();
+    final now = await getWIBTime();
     if (now == null) return;
 
     final time = _fmt(now);
 
-    await firestore.collection("attendance").doc(todayDocId).update({
+    await firestore.collection("attendance").doc(todayDocId!).update({
       "check_out": time,
     });
 
