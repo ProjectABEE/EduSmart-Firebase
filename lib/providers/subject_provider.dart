@@ -4,9 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class SubjectProvider extends ChangeNotifier {
-  // ==================== STATE (yang sebelumnya di _AdminSubjectsPageState) ====================
-
-  // State Input Form
   final TextEditingController subjectController = TextEditingController();
   TimeOfDay? _startTime;
   TimeOfDay? _endTime;
@@ -43,16 +40,12 @@ class SubjectProvider extends ChangeNotifier {
     "Sabtu",
   ];
 
-  // ==================== GETTER UNTUK MENGAKSES STATE ====================
-
   TimeOfDay? get startTime => _startTime;
   TimeOfDay? get endTime => _endTime;
   String? get selectedRoom => _selectedRoom;
   String? get selectedTeacher => _selectedTeacher;
   String? get selectedDay => _selectedDay;
   bool get isLoading => _isLoading;
-
-  // ==================== SETTER UNTUK MENGUBAH STATE ====================
 
   set selectedRoom(String? val) {
     _selectedRoom = val;
@@ -74,8 +67,6 @@ class SubjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ==================== FUNGSI LOGIKA ====================
-
   String formatTime(TimeOfDay t) {
     final dt = DateTime(2025, 1, 1, t.hour, t.minute);
     return DateFormat("HH:mm").format(dt);
@@ -86,7 +77,6 @@ class SubjectProvider extends ChangeNotifier {
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  // Fungsi untuk menampilkan time picker (membutuhkan context)
   Future<void> pickStartTime(BuildContext context) async {
     final t = await showTimePicker(
       context: context,
@@ -94,7 +84,7 @@ class SubjectProvider extends ChangeNotifier {
     );
     if (t != null) {
       _startTime = t;
-      notifyListeners(); // Beri tahu UI untuk update tombol
+      notifyListeners();
     }
   }
 
@@ -105,7 +95,7 @@ class SubjectProvider extends ChangeNotifier {
     );
     if (t != null) {
       _endTime = t;
-      notifyListeners(); // Beri tahu UI untuk update tombol
+      notifyListeners();
     }
   }
 
@@ -119,7 +109,6 @@ class SubjectProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Fungsi untuk mengisi form saat edit
   void setFormForEdit(Map data) {
     subjectController.text = data["subject_name"];
     _selectedRoom = data["room"];
@@ -129,9 +118,6 @@ class SubjectProvider extends ChangeNotifier {
     _endTime = toTimeOfDay(data["end_time"]);
   }
 
-  // ==================== FUNGSI CRUD FIREBASE (Memanggil FirebaseServices) ====================
-
-  // Menggantikan fungsi addSubject() lama
   Future<void> addSubject(BuildContext context) async {
     if (subjectController.text.isEmpty ||
         _startTime == null ||
@@ -157,7 +143,6 @@ class SubjectProvider extends ChangeNotifier {
       "createdAt": DateTime.now().toString(),
     };
 
-    // Panggil fungsi yang sudah ada di FirebaseServices
     await FirebaseServices.insertSubject(subjectData);
 
     clearForm();
@@ -169,10 +154,8 @@ class SubjectProvider extends ChangeNotifier {
     setLoading(false);
   }
 
-  // Menggantikan fungsi editSubject(String id) lama
   Future<void> editSubject(BuildContext context, String id) async {
     if (_startTime == null || _endTime == null) {
-      // Tambahkan validasi jika diperlukan
       return;
     }
 
@@ -185,10 +168,7 @@ class SubjectProvider extends ChangeNotifier {
       "day": _selectedDay,
     };
 
-    // Panggil fungsi yang sudah ada di FirebaseServices
     await FirebaseServices.updateSubject(id, subjectData);
-
-    // clearForm(); // Tidak perlu clear jika setelah ini dialog ditutup
 
     Navigator.pop(context);
     ScaffoldMessenger.of(
@@ -196,7 +176,6 @@ class SubjectProvider extends ChangeNotifier {
     ).showSnackBar(const SnackBar(content: Text("Data berhasil diperbarui ✔")));
   }
 
-  // Fungsi Stream untuk List Mata Pelajaran
   Stream<QuerySnapshot<Map<String, dynamic>>> get subjectsStream {
     return FirebaseServices.firestore
         .collection(FirebaseServices.subjectsCollection)

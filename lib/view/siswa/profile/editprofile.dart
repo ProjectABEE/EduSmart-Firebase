@@ -1,8 +1,10 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edusmart/model/student_model.dart';
+import 'package:edusmart/providers/user_provider.dart'; // Import Provider
 import 'package:edusmart/widget/textfieldwidget.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart'; // Import Provider
 
 class EditProfilePage extends StatefulWidget {
   final StudentModel student;
@@ -58,10 +60,12 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  // --- FUNGSI UPDATE BARU ---
   Future<void> updateProfile() async {
     if (!formKey.currentState!.validate()) return;
 
-    await firestore.collection("students").doc(widget.student.id).update({
+    // 1. Siapkan data yang akan diupdate
+    final updateData = {
       "name": nameC.text,
       "className": classC.text,
       "age": int.tryParse(ageC.text) ?? 0,
@@ -70,29 +74,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
       "tanggalLahir": tglLahirC.text,
       "namaOrtu": namaOrtuC.text,
       "kontakOrtu": kontakOrtuC.text,
-    });
+    };
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text("Profil berhasil diperbarui ✔️"),
-        backgroundColor: Colors.green.shade600,
-      ),
-    );
+    // 2. Panggil fungsi update dari UserProvider
+    final userProvider = context.read<UserProvider>();
+    await userProvider.updateProfileData(context, updateData);
 
-    Navigator.pop(
-      context,
-      widget.student.copyWith(
-        name: nameC.text,
-        className: classC.text,
-        age: int.tryParse(ageC.text) ?? 0,
-        noTelp: telpC.text,
-        alamat: alamatC.text,
-        tanggalLahir: tglLahirC.text,
-        namaOrtu: namaOrtuC.text,
-        kontakOrtu: kontakOrtuC.text,
-      ),
-    );
+    // Logika pop, SnackBar, dan update Firestore sudah ada di provider,
+    // jadi tidak perlu diulang di sini.
   }
+  // --- END FUNGSI UPDATE BARU ---
 
   @override
   Widget build(BuildContext context) {
@@ -105,82 +96,90 @@ class _EditProfilePageState extends State<EditProfilePage> {
         backgroundColor: primaryColor,
       ),
 
-      body: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: formKey,
-          child: Column(
-            children: [
-              Textfield(
-                nama: "Nama Lengkap",
-                controler: nameC,
-                icon: Icons.person,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+      // SOLUSI: SingleChildScrollView dengan NeverScrollableScrollPhysics
+      body: SingleChildScrollView(
+        // Menentukan physics agar pengguna tidak bisa menggulir secara manual
+        physics: const NeverScrollableScrollPhysics(),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: formKey,
+            child: Column(
+              children: [
+                Textfield(
+                  nama: "Nama Lengkap",
+                  controler: nameC,
+                  icon: Icons.person,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "Kelas",
-                controler: classC,
-                icon: Icons.school,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+                Textfield(
+                  nama: "Kelas",
+                  controler: classC,
+                  icon: Icons.school,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "Umur",
-                controler: ageC,
-                icon: Icons.cake,
-                keyboardType: TextInputType.number,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+                Textfield(
+                  nama: "Umur",
+                  controler: ageC,
+                  icon: Icons.cake,
+                  keyboardType: TextInputType.number,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "No. Telepon",
-                controler: telpC,
-                icon: Icons.phone,
-                keyboardType: TextInputType.phone,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+                Textfield(
+                  nama: "No. Telepon",
+                  controler: telpC,
+                  icon: Icons.phone,
+                  keyboardType: TextInputType.phone,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "Alamat",
-                controler: alamatC,
-                icon: Icons.home,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+                Textfield(
+                  nama: "Alamat",
+                  controler: alamatC,
+                  icon: Icons.home,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              GestureDetector(
-                onTap: pickDate,
-                child: AbsorbPointer(
-                  child: Textfield(
-                    nama: "Tanggal Lahir",
-                    controler: tglLahirC,
-                    icon: Icons.date_range,
-                    validator: requiredField,
+                GestureDetector(
+                  onTap: pickDate,
+                  child: AbsorbPointer(
+                    child: Textfield(
+                      nama: "Tanggal Lahir",
+                      controler: tglLahirC,
+                      icon: Icons.date_range,
+                      validator: requiredField,
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 18),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "Nama Orang Tua",
-                controler: namaOrtuC,
-                icon: Icons.family_restroom,
-                validator: requiredField,
-              ),
-              const SizedBox(height: 18),
+                Textfield(
+                  nama: "Nama Orang Tua",
+                  controler: namaOrtuC,
+                  icon: Icons.family_restroom,
+                  validator: requiredField,
+                ),
+                const SizedBox(height: 18),
 
-              Textfield(
-                nama: "Kontak Orang Tua",
-                controler: kontakOrtuC,
-                icon: Icons.phone_in_talk,
-                validator: requiredField,
-              ),
-            ],
+                Textfield(
+                  nama: "Kontak Orang Tua",
+                  controler: kontakOrtuC,
+                  icon: Icons.phone_in_talk,
+                  validator: requiredField,
+                ),
+
+                // SizedBox di akhir untuk jarak dari bottomNavigationBar
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         ),
       ),
@@ -188,7 +187,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(20),
         child: ElevatedButton.icon(
-          icon: const Icon(Icons.save),
+          icon: const Icon(Icons.save, color: Colors.white),
           onPressed: updateProfile,
           style: ElevatedButton.styleFrom(
             backgroundColor: primaryColor,
@@ -199,7 +198,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
           ),
           label: const Text(
             "Simpan Perubahan",
-            style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
         ),
       ),

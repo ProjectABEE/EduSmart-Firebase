@@ -118,7 +118,6 @@ class GradeProvider extends ChangeNotifier {
       final data = doc.data();
       String subjectId = data["subject_id"];
 
-      // Ambil mapel berdasarkan subject_id
       final subjectDoc = await FirebaseFirestore.instance
           .collection("subjects")
           .doc(subjectId)
@@ -128,11 +127,7 @@ class GradeProvider extends ChangeNotifier {
           ? subjectDoc["subject_name"]
           : "Unknown Subject";
 
-      grades.add({
-        "id": doc.id,
-        ...data,
-        "subject_name": subjectName, // ⬅️ sekarang muncul aman
-      });
+      grades.add({"id": doc.id, ...data, "subject_name": subjectName});
     }
 
     return grades;

@@ -32,7 +32,7 @@ class _HomePageEduState extends State<HomePageEdu> {
             children: [
               // Profil Atas Biru
               Container(
-                height: 200,
+                height: 115,
                 width: double.infinity,
                 padding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 decoration: BoxDecoration(
@@ -82,65 +82,65 @@ class _HomePageEduState extends State<HomePageEdu> {
                           },
                         ),
 
-                        const Spacer(),
-                        const Icon(Icons.notifications_none_outlined, size: 26),
+                        // const Spacer(),
+                        // const Icon(Icons.notifications_none_outlined, size: 26),
                       ],
                     ),
 
-                    SizedBox(height: 10),
-                    Container(
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: Color(0X605DB6DF),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 16,
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                "Student ID",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              Spacer(),
-                              Text(
-                                "Class",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ],
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                "2024-001",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                ),
-                              ),
-                              Spacer(),
-                              Text(
-                                "XI IPA 2",
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                    // SizedBox(height: 10),
+                    // Container(
+                    //   height: 80,
+                    //   decoration: BoxDecoration(
+                    //     color: Color(0X605DB6DF),
+                    //     borderRadius: BorderRadius.circular(16),
+                    //   ),
+                    //   padding: EdgeInsets.symmetric(
+                    //     horizontal: 16,
+                    //     vertical: 16,
+                    //   ),
+                    //   child: Column(
+                    //     children: [
+                    //       Row(
+                    //         children: [
+                    //           Text(
+                    //             "Student ID",
+                    //             style: TextStyle(
+                    //               color: Colors.white,
+                    //               fontSize: 14,
+                    //             ),
+                    //           ),
+                    //           Spacer(),
+                    //           Text(
+                    //             "Class",
+                    //             style: TextStyle(
+                    //               color: Colors.white,
+                    //               fontSize: 14,
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //       Row(
+                    //         children: [
+                    //           Text(
+                    //             "2024-001",
+                    //             style: TextStyle(
+                    //               color: Colors.white,
+                    //               fontSize: 18,
+                    //             ),
+                    //           ),
+                    //           Spacer(),
+                    //           Text(
+                    //             "XI IPA 2",
+                    //             style: TextStyle(
+                    //               color: Colors.white,
+                    //               fontSize: 18,
+                    //             ),
+                    //           ),
+                    //         ],
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

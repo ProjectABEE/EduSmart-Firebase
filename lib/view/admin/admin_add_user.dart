@@ -37,7 +37,6 @@ class _AdminAddUserPageState extends State<AdminAddUserPage> {
     setState(() => isLoading = true);
 
     try {
-      // 🔥 Buat model student
       final student = StudentModel(
         name: nameController.text.trim(),
         email: emailController.text.trim(),
@@ -45,13 +44,8 @@ class _AdminAddUserPageState extends State<AdminAddUserPage> {
         className: selectedRole == "siswa" ? classController.text.trim() : null,
       );
 
-      // 🔥 Simpan ke Firebase Auth + Firestore dengan password default
-      await FirebaseServices.registerUser(
-        student,
-        "siswa123", // default password
-      );
+      await FirebaseServices.registerUser(student, "siswa123");
 
-      // Reset Form
       nameController.clear();
       emailController.clear();
       classController.clear();

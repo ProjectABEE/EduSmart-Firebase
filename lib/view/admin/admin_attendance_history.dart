@@ -55,7 +55,6 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            /// DATE PICKER
             InkWell(
               onTap: pickDate,
               child: Container(
@@ -76,7 +75,6 @@ class _AdminHistoryPageState extends State<AdminHistoryPage> {
 
             const SizedBox(height: 20),
 
-            /// RESULT LIST
             Expanded(
               child: historyList.isEmpty
                   ? const Center(

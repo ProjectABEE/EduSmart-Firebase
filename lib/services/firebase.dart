@@ -13,8 +13,6 @@ class FirebaseServices {
   static const gradesCollection = "grades";
   static const attendanceCollection = "attendance";
 
-  // ================= AUTH =================
-
   static Future<StudentModel> registerUser(
     StudentModel user,
     String password,
@@ -49,7 +47,6 @@ class FirebaseServices {
 
       if (user == null) return null;
 
-      // Ambil dokumen user dari firestore
       final snapshot = await firestore
           .collection("students")
           .doc(user.uid)
@@ -65,8 +62,6 @@ class FirebaseServices {
       rethrow;
     }
   }
-
-  // ================= CRUD STUDENT =================
 
   static Future<List<StudentModel>> getAllStudents() async {
     final result = await firestore.collection(studentsCollection).get();
@@ -101,8 +96,6 @@ class FirebaseServices {
     return null;
   }
 
-  // ================= CRUD SUBJECTS =================
-
   static Future<void> insertSubject(Map<String, dynamic> subject) async {
     await firestore.collection(subjectsCollection).add(subject);
   }
@@ -122,8 +115,6 @@ class FirebaseServices {
   static Future<void> deleteSubject(String id) async {
     await firestore.collection(subjectsCollection).doc(id).delete();
   }
-
-  // ================= CRUD GRADES =================
 
   static Future<void> insertGrade(Map<String, dynamic> grade) async {
     await firestore.collection(gradesCollection).add(grade);
@@ -147,8 +138,6 @@ class FirebaseServices {
   static Future<void> deleteGrade(String id) async {
     await firestore.collection(gradesCollection).doc(id).delete();
   }
-
-  // ================= CRUD ATTENDANCE =================
 
   static Future<String> insertAttendance(AttendanceModel attendance) async {
     final ref = await firestore
@@ -181,8 +170,6 @@ class FirebaseServices {
   static Future<void> deleteAttendance(String id) async {
     await firestore.collection(attendanceCollection).doc(id).delete();
   }
-
-  // ================= GET USER FROM PREFS (Optional) =================
 
   static Future<StudentModel?> getStudentFromPrefs() async {
     final prefs = await SharedPreferences.getInstance();

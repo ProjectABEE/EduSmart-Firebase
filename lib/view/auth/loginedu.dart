@@ -1,6 +1,7 @@
 import 'package:edusmart/preferences/preferences_handler.dart';
 import 'package:edusmart/services/firebase.dart';
 import 'package:edusmart/view/admin/bottom_navigation_admin.dart';
+import 'package:edusmart/view/auth/daftaredu.dart';
 import 'package:edusmart/view/guru/bottomnav.dart';
 import 'package:edusmart/view/siswa/bottomnav.dart';
 import 'package:flutter/material.dart';
@@ -21,7 +22,6 @@ class _LoginEduState extends State<LoginEdu> {
   final formKey = GlobalKey<FormState>();
   @override
   void dispose() {
-    // TODO: implement dispose
     super.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -38,7 +38,6 @@ class _LoginEduState extends State<LoginEdu> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        // Gradient background full screen
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
@@ -46,11 +45,9 @@ class _LoginEduState extends State<LoginEdu> {
             colors: [Color(0xff256BE8), Color(0xff1CE2DA)],
           ),
         ),
-        // Biar full tinggi layar
         width: double.infinity,
         height: double.infinity,
 
-        // Biar bisa scroll kalau isi melebihi layar
         child: SingleChildScrollView(
           physics: NeverScrollableScrollPhysics(),
           child: Column(
@@ -62,7 +59,7 @@ class _LoginEduState extends State<LoginEdu> {
               // Kotak login
               Container(
                 width: 343,
-                height: 380,
+                height: 450,
                 margin: const EdgeInsets.only(bottom: 40),
                 padding: const EdgeInsets.symmetric(vertical: 20),
                 decoration: BoxDecoration(
@@ -84,28 +81,28 @@ class _LoginEduState extends State<LoginEdu> {
                     const SizedBox(height: 4),
 
                     // Sign Up Row
-                    // Row(
-                    //   mainAxisAlignment: MainAxisAlignment.center,
-                    //   children: [
-                    //     Text("Don't have an account?"),
-                    //     const SizedBox(width: 1),
-                    //     TextButton(
-                    //       onPressed: () {
-                    //         Navigator.push(
-                    //           context,
-                    //           MaterialPageRoute(
-                    //             builder: (context) => DaftarEdu(),
-                    //           ),
-                    //         );
-                    //       },
-                    //       child: Text(
-                    //         "Sign Up",
-                    //         style: TextStyle(color: Colors.blue),
-                    //       ),
-                    //     ),
-                    //   ],
-                    // ),
-                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text("Don't have an account?"),
+                        const SizedBox(width: 1),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => DaftarEdu(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Sign Up",
+                            style: TextStyle(color: Colors.blue),
+                          ),
+                        ),
+                      ],
+                    ),
+                    // const SizedBox(height: 4),
 
                     // Email & Password
                     Padding(

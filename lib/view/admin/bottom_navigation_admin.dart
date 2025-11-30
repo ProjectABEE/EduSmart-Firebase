@@ -19,7 +19,7 @@ class _BottomNavigationAdminState extends State<BottomNavigationAdmin> {
   final List<Widget> pages = [
     AdminAddUserPage(),
     AdminHistoryPage(),
-    AdminSubjectsPage(), // <-- Added here
+    AdminSubjectsPage(),
     AdminProfilePage(),
   ];
 
@@ -56,10 +56,7 @@ class _BottomNavigationAdminState extends State<BottomNavigationAdmin> {
               tabs: const [
                 GButton(icon: Icons.person_add_alt, text: "Add User"),
                 GButton(icon: Icons.history, text: "History"),
-                GButton(
-                  icon: Icons.book,
-                  text: "Subjects",
-                ), // NEW TAB ICON + LABEL
+                GButton(icon: Icons.book, text: "Subjects"),
                 GButton(icon: Icons.admin_panel_settings, text: "Profile"),
               ],
             ),

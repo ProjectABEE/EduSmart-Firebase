@@ -18,7 +18,6 @@ class AttendanceProvider extends ChangeNotifier {
   List<Map<String, dynamic>> weeklyData = [];
   double weekPercent = 0;
 
-  /// Get REAL WIB time from reliable server
   Future<DateTime?> getWIBTime() async {
     try {
       final res = await http.get(
@@ -28,7 +27,7 @@ class AttendanceProvider extends ChangeNotifier {
 
       return DateTime.parse(data["datetime"]);
     } catch (e) {
-      return DateTime.now(); // fallback
+      return DateTime.now();
     }
   }
 
@@ -144,6 +143,8 @@ class AttendanceProvider extends ChangeNotifier {
     formattedCheckOut = time;
     isCheckedOut = true;
 
+    await loadToday(studentId);
+    await loadWeek(studentId);
     notifyListeners();
   }
 }

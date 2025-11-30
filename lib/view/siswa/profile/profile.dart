@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../model/student_model.dart'; // Pastikan StudentModel diimpor
 import '../../../providers/user_provider.dart';
 
 // Diubah menjadi StatelessWidget
@@ -27,14 +28,33 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
+  // --- FUNGSI NAVIGASI BARU ---
+  Future<void> _navigateToEditProfile(
+    BuildContext context,
+    StudentModel student,
+  ) async {
+    // Navigasi ke EditProfilePage dan menunggu hasilnya (yang dikirim oleh provider)
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => EditProfilePage(student: student)),
+    );
+
+    // Jika result adalah true (update berhasil)
+    if (result == true) {
+      // Karena UserProvider sudah mengupdate _student model lokal dan memanggil notifyListeners()
+      // dan ProfilePage ini 'watch' UserProvider, UI akan otomatis rebuild
+      // dan menampilkan nama yang baru tanpa memanggil fetchUser() lagi.
+      // fetchUser() hanya perlu dipanggil jika logic update ada di EditProfilePage.
+      debugPrint("Profile updated successfully, UI rebuilt.");
+    }
+  }
+  // --- END FUNGSI NAVIGASI BARU ---
+
   @override
   Widget build(BuildContext context) {
     // Watch UserProvider untuk data student dan status uploading
     final userProvider = context.watch<UserProvider>();
     final student = userProvider.student;
-
-    // Read UserProvider untuk memanggil fungsi (tanpa listen/rebuild)
-    final userProviderRead = context.read<UserProvider>();
 
     // Status uploading yang diambil dari Provider
     final uploading = userProvider.isUploading;
@@ -64,7 +84,9 @@ class ProfilePage extends StatelessWidget {
                           // Panggil fungsi Provider (changePhoto)
                           onTap: uploading
                               ? null
-                              : () => userProviderRead.changePhoto(context),
+                              : () => context.read<UserProvider>().changePhoto(
+                                  context,
+                                ),
                           child: Stack(
                             alignment: Alignment.center,
                             children: [
@@ -101,7 +123,8 @@ class ProfilePage extends StatelessWidget {
                         const SizedBox(height: 10),
 
                         Text(
-                          student.name ?? "-",
+                          student.name ??
+                              "-", // Teks ini akan otomatis terupdate
                           style: const TextStyle(
                             fontSize: 22,
                             color: Colors.white,
@@ -118,12 +141,9 @@ class ProfilePage extends StatelessWidget {
                         const SizedBox(height: 8),
 
                         ElevatedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => EditProfilePage(student: student),
-                            ),
-                          ),
+                          // Panggil fungsi navigasi baru
+                          onPressed: () =>
+                              _navigateToEditProfile(context, student),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
                             foregroundColor: const Color(0xFF2567E8),
@@ -137,22 +157,15 @@ class ProfilePage extends StatelessWidget {
                   const SizedBox(height: 20),
 
                   /// 🔹 Stats Section
-                  // ... (Bagian statistik tetap sama)
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
-                        // statCard(
-                        //   "92%",
-                        //   "Attendance",
-                        //   Icons.calendar_today,
-                        //   Colors.blue,
-                        // ),
                         Consumer2<GradeProvider, UserProvider>(
                           builder: (context, gradeProvider, userProvider, _) {
                             final student = userProvider.student;
-                            if (student == null) return SizedBox();
+                            if (student == null) return const SizedBox();
 
                             return FutureBuilder<double>(
                               future: gradeProvider.getAverageGrade(
@@ -199,8 +212,6 @@ class ProfilePage extends StatelessWidget {
                             );
                           },
                         ),
-
-                        //statCard("8", "Courses", Icons.book, Colors.purple),
                       ],
                     ),
                   ),
@@ -210,6 +221,11 @@ class ProfilePage extends StatelessWidget {
                   sectionTitle("Personal Info"),
                   infoTile(Icons.email, student.email ?? "-", "Email"),
                   infoTile(Icons.person, student.className ?? "-", "Class"),
+                  infoTile(
+                    Icons.phone_android,
+                    student.noTelp ?? "-",
+                    "Contact",
+                  ),
                   infoTile(Icons.location_on, student.alamat ?? "-", "Address"),
                   infoTile(
                     Icons.cake,

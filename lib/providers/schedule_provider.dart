@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
 class ScheduleProvider extends ChangeNotifier {
-  // Map untuk konversi Hari dari English (kunci) ke Indonesia (nilai)
   final Map<String, String> dayMap = {
     "Monday": "Senin",
     "Tuesday": "Selasa",
@@ -12,17 +11,13 @@ class ScheduleProvider extends ChangeNotifier {
     "Saturday": "Sabtu",
   };
 
-  // Getter untuk mengakses Map di UI
   Map<String, String> get dayMapping => dayMap;
 
-  // Fungsi untuk mendapatkan Stream Mata Pelajaran
-  // Fungsi ini kini menjadi bagian dari Provider
   Stream<QuerySnapshot> getSubjectsFor(String englishDay) {
     final firestore = FirebaseFirestore.instance;
     final indoDay = dayMap[englishDay] ?? "";
 
     if (indoDay.isEmpty) {
-      // Mengembalikan stream kosong jika hari tidak valid
       return const Stream<QuerySnapshot>.empty();
     }
 

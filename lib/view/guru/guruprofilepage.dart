@@ -8,7 +8,7 @@ class TeacherProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final user = FirebaseAuth.instance.currentUser; // Ambil data login
+    final user = FirebaseAuth.instance.currentUser;
 
     return Scaffold(
       appBar: AppBar(
@@ -21,7 +21,6 @@ class TeacherProfilePage extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            /// Avatar
             Center(
               child: CircleAvatar(
                 radius: 50,

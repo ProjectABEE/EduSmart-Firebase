@@ -1,37 +1,30 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:edusmart/model/student_model.dart'; // Sesuaikan dengan path StudentModel Anda
+import 'package:edusmart/model/student_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class UserProvider with ChangeNotifier {
-  // ===================== STATE =====================
   StudentModel? _student;
-  bool _isUploading = false; // State untuk mengelola status upload foto
+  bool _isUploading = false;
 
-  // Akses ke Firebase
   final _auth = FirebaseAuth.instance;
   final _firestore = FirebaseFirestore.instance;
 
-  // ===================== GETTER =====================
   StudentModel? get student => _student;
   bool get isUploading => _isUploading;
 
-  // ===================== FUNGSI UTAMA =====================
-
-  /// 🔥 Load user data sekali saat login / buka aplikasi (Sudah ada)
   Future<void> fetchUser() async {
     final user = _auth.currentUser;
     if (user == null) {
-      _student = null; // Clear student jika user logout
+      _student = null;
       notifyListeners();
       return;
     }
 
-    // Ambil data dari Firestore
     final snap = await _firestore.collection("students").doc(user.uid).get();
 
     if (snap.exists) {
@@ -40,28 +33,69 @@ class UserProvider with ChangeNotifier {
     }
   }
 
-  // ===================== FUNGSI FOTO DAN PROSES =====================
-
-  // Setter untuk mengubah status upload (dipindahkan dari ProfilePage)
   void setUploading(bool status) {
     _isUploading = status;
     notifyListeners();
   }
 
-  /// 🔥 Update profile image ke Firestore + update UI real time (Sudah ada, diperkuat)
   void updateImageInModel(String url) {
-    // Mengubah nama agar tidak bentrok dengan logika Firebase
     if (_student != null) {
       _student = _student!.copyWith(profileImage: url);
       notifyListeners();
     }
   }
 
-  /// 📷 Upload ke Supabase + update Firestore + notify Provider (Logika Baru)
+  // --- FUNGSI BARU UNTUK UPDATE PROFIL ---
+  Future<void> updateProfileData(
+    BuildContext context,
+    Map<String, dynamic> data,
+  ) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null || _student == null) {
+      return;
+    }
+
+    try {
+      // setUploading(true); // Opsional: Aktifkan jika mau ada loading global
+
+      await _firestore.collection("students").doc(currentUser.uid).update(data);
+
+      // Perbarui model lokal di Provider menggunakan copyWith
+      _student = _student!.copyWith(
+        name: data['name'],
+        className: data['className'],
+        age: data['age'],
+        noTelp: data['noTelp'],
+        alamat: data['alamat'],
+        tanggalLahir: data['tanggalLahir'],
+        namaOrtu: data['namaOrtu'],
+        kontakOrtu: data['kontakOrtu'],
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text("Profil berhasil diperbarui ✔️"),
+          backgroundColor: Colors.green.shade600,
+        ),
+      );
+
+      notifyListeners();
+      // Memberi sinyal 'true' ke halaman ProfilePage bahwa update berhasil
+      Navigator.pop(context, true);
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Pembaruan gagal: $e")));
+      Navigator.pop(context, false);
+    } finally {
+      // setUploading(false); // Opsional
+    }
+  }
+  // --- END FUNGSI BARU ---
+
   Future<void> changePhoto(BuildContext context) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null || _student == null) {
-      // Handle user not logged in
       return;
     }
 
@@ -70,7 +104,7 @@ class UserProvider with ChangeNotifier {
 
     if (file == null) return;
 
-    setUploading(true); // Memanggil setter baru
+    setUploading(true);
 
     final supabase = Supabase.instance.client;
     final userId = currentUser.uid;
@@ -80,7 +114,6 @@ class UserProvider with ChangeNotifier {
     try {
       final bytes = await File(file.path).readAsBytes();
 
-      // 1. Upload ke Supabase Storage
       await supabase.storage
           .from('students')
           .uploadBinary(
@@ -91,12 +124,10 @@ class UserProvider with ChangeNotifier {
 
       final url = supabase.storage.from('students').getPublicUrl(filePath);
 
-      // 2. Update Firestore (memanggil logika update Firestore yang sudah ada)
       await _firestore.collection("students").doc(userId).update({
         "profileImage": url,
       });
 
-      // 3. Update Provider State (UI akan auto refresh)
       updateImageInModel(url);
 
       ScaffoldMessenger.of(context).showSnackBar(

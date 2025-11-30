@@ -13,11 +13,7 @@ class BottomNavGuru extends StatefulWidget {
 class _BottomNavGuruState extends State<BottomNavGuru> {
   int index = 0;
 
-  final pages = [
-    HomePageGuruEdu(),
-    TeacherGradePage(), // ⬅️ page input nilai masuk sini
-    TeacherProfilePage(), // ProfileGuruPage(),
-  ];
+  final pages = [HomePageGuruEdu(), TeacherGradePage(), TeacherProfilePage()];
 
   @override
   Widget build(BuildContext context) {
@@ -28,10 +24,7 @@ class _BottomNavGuruState extends State<BottomNavGuru> {
         onTap: (i) => setState(() => index = i),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.edit),
-            label: "Input Nilai",
-          ), // ⬅️
+          BottomNavigationBarItem(icon: Icon(Icons.edit), label: "Input Nilai"),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
         ],
       ),

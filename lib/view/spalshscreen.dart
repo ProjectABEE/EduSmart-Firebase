@@ -33,7 +33,7 @@ class _SplashScreenState extends State<SplashScreen> {
       } else if (role == "guru") {
         goTo(const BottomNavGuru());
       } else {
-        goTo(const BottomNavigationEDU()); // siswa default
+        goTo(const BottomNavigationEDU());
       }
     } else {
       goTo(const LoginEdu());
